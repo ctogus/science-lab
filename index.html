@@ -321,6 +321,7 @@ const Voice = {
   clean(t) {
     return t.replace(/\p{Extended_Pictographic}|️|‍/gu, '')
       .replace(/g\/cm³/g, 'grams per cubic centimeter')
+      .replace(/(\d) ml\b/g, '$1 milliliters').replace(/(\d) cm\b/g, '$1 centimeters').replace(/→/g, ' makes ')
       .replace(/(\d) V\b/g, '$1 volts').replace(/(\d) A\b/g, '$1 amps')
       .replace(/÷/g, ' divided by ').replace(/=/g, ' equals ')
       .replace(/\s\+\s/g, ' plus ').replace(/−/g, 'minus').replace(/\+/g, 'plus')
@@ -1198,6 +1199,348 @@ Lab.register({
       { q: 'A material that lets electricity flow is called…', options: ['a conductor', 'an insulator', 'a battery'], answer: 0 },
       { q: 'You add more batteries. What happens to the bulb?', options: ['It gets brighter', 'It gets dimmer', 'It gets colder'], answer: 0 },
       { q: 'Why are wires covered in plastic?', options: ['Plastic is an insulator, so it keeps the electricity inside', 'Plastic makes electricity faster', 'Plastic makes the wire heavier'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.4  Magnets ---------- */
+Lab.register({
+  id: 'magnets', title: 'Magnets', emoji: '🧲', color: '#ef4444', category: 'Forces and motion',
+  blurb: 'Find out what a magnet can pull.',
+  bits: ['📎', '🔩', '🪙', '🖍️', '🔧', '🧽'],
+  question: {
+    explorer: 'A magnet can pull things without even touching them. But does it pull everything?',
+    scientist: 'Magnets pull on some materials and ignore others. They can even push each other away. What are the rules?'
+  },
+  predict: {
+    explorer: { prompt: 'Will the magnet pick up the copper coin?', options: ['🪙 Yes, it will', '🪙 No, it will not'], answer: 1 },
+    scientist: { prompt: 'You push the north poles of two magnets toward each other. What happens?', options: ['They snap together', 'They push each other away', 'Nothing happens'], answer: 1 }
+  },
+  instructions: {
+    explorer: 'Drag the magnet close to each thing. Which ones jump to it?',
+    scientist: 'Test the objects with the magnet. Then switch to Two magnets and find out when magnets pull and when they push.'
+  },
+  goals: {
+    explorer: [{ id: 'test5', label: 'Try the magnet on 5 things' }],
+    scientist: [{ id: 'test5', label: 'Test 5 objects' }, { id: 'attract', label: 'Make two magnets snap together' }, { id: 'repel', label: 'Make one magnet push the other away' }]
+  },
+  items: [
+    { id: 'clip', name: 'paper clip', emoji: '📎', m: true, mat: 'steel' }, { id: 'coin', name: 'copper coin', emoji: '🪙', m: false, mat: 'copper' },
+    { id: 'bolt', name: 'bolt', emoji: '🔩', m: true, mat: 'iron' }, { id: 'crayon', name: 'crayon', emoji: '🖍️', m: false, mat: 'wax' },
+    { id: 'wrench', name: 'wrench', emoji: '🔧', m: true, mat: 'steel' }, { id: 'stick', name: 'stick', emoji: '🪵', m: false, mat: 'wood' },
+    { id: 'pin', name: 'safety pin', emoji: '🧷', m: true, mat: 'steel' }, { id: 'sponge', name: 'sponge', emoji: '🧽', m: false, mat: 'soft plastic' }
+  ],
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.tested = data.tested || {};
+    let mode = 'objects', nStuck = 0;
+    /* ----- magnet and objects ----- */
+    const gA = S('g', {}, svg);
+    S('rect', { x: 30, y: 230, width: 740, height: 340, rx: 24, fill: '#fef3c7', stroke: '#fcd34d', 'stroke-width': 4 }, gA);
+    const items = this.items.map((d, i) => {
+      const it = { ...d, hx: 115 + (i % 4) * 190, hy: 320 + Math.floor(i / 4) * 150, stuck: false, seen: false };
+      it.x = it.hx; it.y = it.hy; it.g = emojiItem(gA, d.emoji, 54); it.g.style.cursor = 'default';
+      return it;
+    });
+    const m = { x: 400, y: 120 }, mg = emojiItem(gA, '🧲', 84);
+    drag(mg, svg, { move: p => { m.x = clamp(p.x, 50, 750); m.y = clamp(p.y, 50, 540); } });
+    function seen(it) {
+      it.seen = true;
+      data.tested[it.id] = { ok: it.m, name: it.name, emoji: it.emoji };
+      if (it.m) ctx.note(sci ? `The ${it.name} jumps to the magnet. It is made of ${it.mat}, and ${it.mat} is magnetic.` : `The ${it.name} jumps to the magnet! It sticks.`);
+      else if (it.id === 'coin') ctx.note(sci ? 'The copper coin does not move. Copper is a metal, but it is not magnetic. Not every metal is!' : 'The copper coin does not stick. Not every metal sticks to a magnet!');
+      else ctx.note(sci ? `The ${it.name} does not move. It is made of ${it.mat}, and ${it.mat} is not magnetic.` : `The ${it.name} does not stick to the magnet.`);
+      if (Object.keys(data.tested).length >= 5) ctx.goal('test5');
+    }
+    const back = h('button', { class: 'mini', onclick: () => { nStuck = 0; items.forEach(it => { it.stuck = false; it.x = it.hx; it.y = it.hy; }); } }, '↺ Put everything back');
+    controls.append(back);
+    /* ----- two bar magnets (Scientist) ----- */
+    let A = null, B = null, info = null, gB = null, lastSay = '';
+    if (sci) {
+      gB = S('g', { display: 'none' }, svg);
+      S('rect', { x: 30, y: 180, width: 740, height: 240, rx: 24, fill: '#eef2ff', stroke: '#c7d2fe', 'stroke-width': 4 }, gB);
+      info = label(gB, 400, 480, 'Drag the right magnet toward the left one', 24, '#1f2a44');
+      const bar = () => {
+        const g = S('g', { class: 'item' }, gB);
+        const L = S('rect', { x: -80, y: -28, width: 80, height: 56, rx: 8 }, g), R = S('rect', { x: 0, y: -28, width: 80, height: 56, rx: 8 }, g);
+        const tl = label(g, -40, 10, '', 28, '#fff'), tr = label(g, 40, 10, '', 28, '#fff');
+        g.paint = f => { L.setAttribute('fill', f ? '#3b82f6' : '#ef4444'); R.setAttribute('fill', f ? '#ef4444' : '#3b82f6'); tl.textContent = f ? 'S' : 'N'; tr.textContent = f ? 'N' : 'S'; };
+        g.paint(false); return g;
+      };
+      A = { x: 220, y: 300, g: bar() }; B = { x: 640, y: 300, flip: false, g: bar() };
+      A.g.style.cursor = 'default';
+      drag(B.g, svg, { move: p => { B.x = clamp(p.x, 110, 690); B.y = clamp(p.y, 220, 380); } });
+      const flip = h('button', { class: 'mini', style: 'display:none', onclick: () => { B.flip = !B.flip; B.g.paint(B.flip); lastSay = ''; ctx.note('You turned the magnet around. Now bring it close to the other magnet again.'); } }, '🔄 Turn the magnet around');
+      controls.prepend(seg('Try', [{ v: 'objects', t: '🧲 Objects' }, { v: 'two', t: '🔴🔵 Two magnets' }], 'objects', v => {
+        mode = v;
+        gA.setAttribute('display', v === 'objects' ? '' : 'none'); gB.setAttribute('display', v === 'two' ? '' : 'none');
+        back.style.display = v === 'objects' ? '' : 'none'; flip.style.display = v === 'two' ? '' : 'none';
+        ctx.note(v === 'two' ? 'Each magnet has a north pole (N) and a south pole (S). Drag the right magnet toward the left one.' : 'Drag the magnet close to each object.');
+      }), flip);
+    }
+    const say = (k) => {
+      if (k === lastSay) return; lastSay = k;
+      const t = k === 'attract' ? 'North and south poles attract. The magnets snap together!' : 'Two poles of the same kind repel. The magnet is pushed away!';
+      info.textContent = k === 'attract' ? 'N and S attract' : (B.flip && B.x > A.x) || (!B.flip && B.x < A.x) ? 'S and S repel' : 'N and N repel';
+      data[k] = true; ctx.note(t); ctx.goal(k);
+    };
+    scene.loop(dt => {
+      if (mode === 'objects') {
+        mg.setAttribute('transform', `translate(${m.x.toFixed(1)},${m.y.toFixed(1)})`);
+        for (const it of items) {
+          const dx = m.x - it.x, dy = m.y + 30 - it.y, d = Math.hypot(dx, dy) || 1;
+          if (it.stuck) { it.x = m.x + it.ox; it.y = m.y + it.oy; }
+          else if (it.m && d < 170) {
+            const v = Math.min(900, 70000 / d) * dt;
+            if (d <= Math.max(v, 30)) { it.stuck = true; it.ox = -48 + (nStuck % 4) * 32; it.oy = 52 + Math.floor(nStuck / 4) * 30; nStuck++; if (!it.seen) seen(it); }
+            else { it.x += dx / d * v; it.y += dy / d * v; }
+          } else if (!it.m && d < 62 && !it.seen) seen(it);
+          it.g.setAttribute('transform', `translate(${it.x.toFixed(1)},${it.y.toFixed(1)})`);
+        }
+        return;
+      }
+      const side = B.x >= A.x ? 1 : -1, gap = Math.abs(B.x - A.x) - 160, near = Math.abs(B.y - A.y) < 70;
+      if (near && gap < 200) {
+        if (!B.flip) {
+          const tx = B.x - side * 160;
+          A.x += (tx - A.x) * Math.min(1, dt * (gap < 110 ? 12 : 2.5)); A.y += (B.y - A.y) * Math.min(1, dt * 8);
+          if (Math.abs(tx - A.x) < 4) say('attract');
+        } else {
+          const tx = clamp(B.x - side * 360, 110, 690);
+          if (Math.abs(tx - A.x) > 2) { A.x += (tx - A.x) * Math.min(1, dt * 10); say('repel'); }
+        }
+      }
+      if (near && Math.abs(B.x - A.x) < 160) B.x = clamp(A.x + side * 160, 110, 690);
+      A.g.setAttribute('transform', `translate(${A.x.toFixed(1)},${A.y.toFixed(1)})`);
+      B.g.setAttribute('transform', `translate(${B.x.toFixed(1)},${B.y.toFixed(1)})`);
+    });
+  },
+  observations(data) {
+    const o = Object.values(data.tested || {}).map(t => `${t.emoji} ${t.ok ? 'sticks' : 'does not stick'}`);
+    if (data.attract) o.push('N + S: pull together');
+    if (data.repel) o.push('same poles: push apart');
+    return o;
+  },
+  result(lv, data) {
+    const t = Object.values(data.tested || {});
+    const yes = t.filter(x => x.ok).map(x => 'the ' + x.name), no = t.filter(x => !x.ok).map(x => 'the ' + x.name);
+    let s = '';
+    if (yes.length) s += `The magnet pulled ${listWords(yes)}. `;
+    if (no.length) s += `It did not pull ${listWords(no)}. `;
+    if (lv === 'scientist') s += 'Only the iron and steel objects were attracted. With two magnets, opposite poles pulled together and matching poles pushed apart.';
+    else s += 'The magnet only pulled some of the metal things.';
+    return s;
+  },
+  why: {
+    explorer: 'A magnet pulls on some metals, like iron and steel. The pull works even before the magnet touches! It does not pull on wood, wax or plastic. It does not pull on copper either. So not every metal sticks to a magnet.',
+    scientist: 'A magnet has an invisible magnetic field around it. The field pulls on iron, steel, nickel and cobalt. Other metals, such as copper and aluminum, are not attracted. Every magnet has two poles: north and south. Opposite poles attract. Like poles repel. The force gets weaker quickly as the distance grows. Earth is a giant magnet too. That is why a compass needle points north.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    if (!sci) {
+      S('text', { x: 180, y: 300, 'font-size': 150, 'text-anchor': 'middle', dy: '.35em', text: '🧲' }, svg);
+      const waves = [0, 1, 2].map(() => S('path', { fill: 'none', stroke: '#ef4444', 'stroke-width': 6, 'stroke-linecap': 'round' }, svg));
+      const clip = S('text', { 'font-size': 80, 'text-anchor': 'middle', dy: '.35em', text: '📎' }, svg);
+      S('text', { x: 600, y: 470, 'font-size': 80, 'text-anchor': 'middle', dy: '.35em', text: '🖍️' }, svg);
+      const t1 = label(svg, 400, 80, '', 32, '#1f2a44');
+      label(svg, 600, 550, 'The crayon stays.', 24);
+      scene.loop((dt, t) => {
+        const c = t % 4, k = clamp((c - 1) / 1.2, 0, 1), x = 620 - 330 * k * k;
+        clip.setAttribute('x', x); clip.setAttribute('y', 250);
+        t1.textContent = k >= 1 ? 'The paper clip sticks!' : 'The magnet pulls the paper clip...';
+        waves.forEach((w, i) => {
+          const r = 110 + ((t * 60 + i * 50) % 150);
+          w.setAttribute('d', `M${180 + r},${300 - r * 0.45} Q${180 + r * 1.25},300 ${180 + r},${300 + r * 0.45}`);
+          w.setAttribute('opacity', 1 - (r - 110) / 150);
+        });
+      });
+      return;
+    }
+    label(svg, 400, 60, 'The magnetic field goes from N to S', 26, '#1f2a44');
+    [70, 130, 190].forEach(k => {
+      S('path', { d: `M250,300 C250,${300 - k * 1.6} 550,${300 - k * 1.6} 550,300`, fill: 'none', stroke: '#94a3b8', 'stroke-width': 5, class: 'ray' }, svg);
+      S('path', { d: `M250,300 C250,${300 + k * 1.6} 550,${300 + k * 1.6} 550,300`, fill: 'none', stroke: '#94a3b8', 'stroke-width': 5, class: 'ray' }, svg);
+    });
+    S('rect', { x: 250, y: 265, width: 150, height: 70, rx: 10, fill: '#ef4444' }, svg); S('rect', { x: 400, y: 265, width: 150, height: 70, rx: 10, fill: '#3b82f6' }, svg);
+    label(svg, 325, 313, 'N', 40, '#fff'); label(svg, 475, 313, 'S', 40, '#fff');
+    label(svg, 400, 560, 'Opposite poles attract. Like poles repel.', 24, '#1f2a44');
+  },
+  home: {
+    explorer: 'Take a fridge magnet around the house with a grown-up. What does it stick to? Try a spoon, a door handle, a coin and the fridge.',
+    scientist: 'Put a paper clip on a table. Slowly slide a magnet toward it. Measure how far away the magnet is when the paper clip jumps. Try again with a sheet of paper in between.'
+  },
+  safety: 'Keep magnets away from phones, tablets and bank cards. Never put a magnet in your mouth.',
+  quiz: {
+    explorer: [
+      { q: 'Which one sticks to a magnet?', options: ['📎 The paper clip', '🖍️ The crayon', '🧽 The sponge'], answer: 0 },
+      { q: 'Does a magnet pull every metal?', options: ['No, only some metals, like iron', 'Yes, every metal', 'No, it only pulls wood'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'Which poles attract each other?', options: ['North and south', 'North and north', 'South and south'], answer: 0 },
+      { q: 'Which metal is not attracted to a magnet?', options: ['Copper', 'Iron', 'Steel'], answer: 0 },
+      { q: 'What happens to the magnetic force when the magnet moves farther away?', options: ['It gets weaker', 'It gets stronger', 'It stays the same'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.5  Volcano ---------- */
+Lab.register({
+  id: 'volcano', title: 'Volcano', emoji: '🌋', color: '#f97316', category: 'Chemistry',
+  blurb: 'Mix baking soda and vinegar and watch it erupt.',
+  bits: ['🥄', '🧴', '🫧', '💨', '🧪', '⛰️'],
+  question: {
+    explorer: 'We have baking soda and vinegar from the kitchen. What happens when they meet?',
+    scientist: 'Some things change into brand new things when they mix. How can two kitchen ingredients make a foamy eruption?'
+  },
+  predict: {
+    explorer: { prompt: 'What will happen when vinegar meets baking soda?', options: ['It will fizz and bubble up', 'Nothing will happen', 'It will turn into ice'], answer: 0 },
+    scientist: { prompt: 'You pour a small amount of vinegar onto 3 spoons of baking soda. Will all the baking soda react?', options: ['Yes, all of it', 'No, some will be left over', 'It will not react at all'], answer: 1 }
+  },
+  instructions: {
+    explorer: 'Drag the spoon of baking soda into the volcano. Then drag the vinegar bottle to the top!',
+    scientist: 'Add spoons of baking soda, choose how much vinegar to use, then drag the bottle to the crater. Compare different mixes.'
+  },
+  goals: {
+    explorer: [{ id: 'soda', label: 'Put baking soda in the volcano' }, { id: 'erupt', label: 'Make the volcano erupt' }, { id: 'big', label: 'Make a giant eruption with 3 spoons' }],
+    scientist: [{ id: 'erupt', label: 'Make the volcano erupt' }, { id: 'two', label: 'Try 2 different mixes' }, { id: 'big', label: 'Make the biggest eruption: 30 cm' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.runs = data.runs || [];
+    let spoons = 0, vin = sci ? 60 : 180, busy = false;
+    S('rect', { x: 0, y: 540, width: 800, height: 60, fill: '#86efac' }, svg);
+    S('polygon', { points: '130,550 360,250 440,250 670,550', fill: '#92400e' }, svg);
+    S('polygon', { points: '360,250 440,250 475,295 325,295', fill: '#78350f' }, svg);
+    S('ellipse', { cx: 400, cy: 250, rx: 40, ry: 10, fill: '#451a03' }, svg);
+    S('ellipse', { cx: 400, cy: 232, rx: 90, ry: 48, fill: 'none', stroke: '#f97316', 'stroke-width': 3, 'stroke-dasharray': '8 8' }, svg);
+    const gFoam = S('g', { 'pointer-events': 'none' }, svg);
+    const info = label(svg, 400, 580, 'The volcano is empty', 20, '#14532d');
+    const meter = sci ? label(svg, 400, 40, '', 24, '#1f2a44') : null;
+    label(svg, 110, 280, 'Baking soda', 17); label(svg, 690, 280, 'Vinegar', 17);
+    const mk = (emoji, hx, hy, onDrop) => {
+      const o = { x: hx, y: hy, hx, hy, back: false };
+      o.g = emojiItem(svg, emoji, 66);
+      drag(o.g, svg, {
+        start: () => { o.back = false; },
+        move: p => { o.x = clamp(p.x, 40, 760); o.y = clamp(p.y, 40, 520); },
+        end: () => { if (Math.abs(o.x - 400) < 105 && o.y > 140 && o.y < 330) onDrop(); o.back = true; }
+      });
+      return o;
+    };
+    const refresh = () => { info.textContent = spoons ? `Baking soda in the volcano: ${spoons} spoon${spoons > 1 ? 's' : ''}` : 'The volcano is empty'; };
+    const spoon = mk('🥄', 110, 210, () => {
+      if (busy) return;
+      if (spoons >= 3) return ctx.note('That is enough baking soda. Now pour the vinegar!');
+      spoons++; refresh(); ctx.goal('soda');
+      ctx.note(spoons === 1 ? 'One spoon of baking soda is in the volcano. Add more, or pour the vinegar!' : `${spoons} spoons of baking soda are in. Now pour the vinegar!`);
+    });
+    const bottle = mk('🧴', 690, 210, () => {
+      if (busy) return;
+      if (!spoons) return ctx.note(sci ? 'Nothing happens. Vinegar alone has nothing to react with. Add baking soda first.' : 'Nothing happens! The vinegar needs baking soda. Add a spoon first.');
+      erupt();
+    });
+    const parts = [], cols = ['#fb923c', '#f87171', '#fde68a', '#fdba74'];
+    const coneY = x => 250 + Math.max(0, Math.abs(x - 400) - 40) * 1.304;
+    function spawn(gas) {
+      const el = S('circle', { r: 7 + Math.random() * 7, fill: cols[parts.length % 4], stroke: '#fff', 'stroke-width': 1.5 }, gFoam);
+      parts.push({ el, x: 400 + (Math.random() - .5) * 50, y: 248, vx: (Math.random() - .5) * (120 + gas * 70), vy: -(170 + gas * 110) * (0.6 + Math.random() * 0.5), life: 3.2, slide: 0 });
+    }
+    function erupt() {
+      busy = true;
+      const need = spoons * 60, gas = Math.min(spoons, vin / 60), cm = Math.round(gas * 10);
+      data.runs.push({ s: spoons, v: vin, cm });
+      let t = 0, made = 0; const total = Math.round(45 * gas), dur = 1.2 + gas * 0.8;
+      const stop = scene.loop(dt => {
+        t += dt;
+        while (made < total && made < total * t / dur) { made++; spawn(gas); }
+        if (t > dur + 3.5) { stop(); busy = false; spoons = 0; refresh(); }
+      });
+      if (meter) meter.textContent = `Foam height: ${cm} cm`;
+      if (sci) {
+        if (vin < need) data.leftSoda = true;
+        ctx.note(`${spoons} spoon${spoons > 1 ? 's' : ''} of baking soda and ${vin} ml of vinegar. The foam rises ${cm} cm. ` +
+          (vin < need ? 'Some baking soda is left over. There was not enough vinegar to react with all of it.' : vin > need ? 'Some vinegar is left over. All the baking soda was used up.' : 'A perfect mix! Nothing is left over.'));
+      } else {
+        ctx.note(gas >= 3 ? 'WOW! A giant eruption! Three spoons make lots and lots of foam.' : gas >= 2 ? 'Whoosh! A bigger eruption! Can you make it even bigger?' : 'Fizz! The volcano erupts! Try more baking soda for a bigger eruption.');
+      }
+      ctx.goal('erupt');
+      if (gas >= 3) ctx.goal('big');
+      if (new Set(data.runs.map(r => r.s + '-' + r.v)).size >= 2) ctx.goal('two');
+    }
+    scene.loop(dt => {
+      for (const o of [spoon, bottle]) {
+        if (o.back) { const k = Math.min(1, dt * 9); o.x += (o.hx - o.x) * k; o.y += (o.hy - o.y) * k; }
+        o.g.setAttribute('transform', `translate(${o.x.toFixed(1)},${o.y.toFixed(1)})`);
+      }
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i]; p.life -= dt;
+        if (p.slide) { p.x += p.slide * 45 * dt; p.y = coneY(p.x) - 4; }
+        else {
+          p.vy += 520 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+          if (p.vy > 0 && p.y >= coneY(p.x) - 4) p.slide = p.x >= 400 ? 1 : -1;
+        }
+        p.el.setAttribute('cx', p.x.toFixed(1)); p.el.setAttribute('cy', p.y.toFixed(1)); p.el.setAttribute('opacity', clamp(p.life / 0.8, 0, 1));
+        if (p.life <= 0 || p.y > 545) { p.el.remove(); parts.splice(i, 1); }
+      }
+    });
+    if (sci) controls.append(seg('🧴 Vinegar', [60, 120, 180].map(v => ({ v, t: v + ' ml' })), 60, v => { vin = v; }));
+  },
+  observations(data, lv) {
+    return (data.runs || []).slice(-8).map(r => lv === 'scientist' ? `🥄 ${r.s} + 🧴 ${r.v} ml → ${r.cm} cm` : `🥄 ${r.s} → 🌋 ${r.cm >= 30 ? 'giant' : r.cm >= 20 ? 'big' : 'small'}`);
+  },
+  result(lv, data) {
+    if (lv === 'scientist') {
+      return 'The vinegar and baking soda reacted and made foam. More of both ingredients made a taller eruption. ' +
+        (data.leftSoda ? 'When there was too little vinegar, some baking soda was left over and the foam stayed low. ' : '') +
+        'Adding more of only one ingredient did not help once the other one ran out.';
+    }
+    return 'The vinegar touched the baking soda and it fizzed! Foam shot up and ran down the sides. More baking soda made a bigger eruption.';
+  },
+  why: {
+    explorer: 'Vinegar and baking soda do not just mix. They change into something new! They make lots of tiny gas bubbles. The bubbles push the foam up and out, just like a volcano.',
+    scientist: 'This is a chemical reaction. Vinegar is an acid. Baking soda is a base. When they meet, they react and make three new things: water, a kind of salt, and carbon dioxide gas. The gas makes bubbles that push the foam out. The reaction stops when one ingredient runs out. A real volcano is different. It erupts because hot melted rock and gas push up from deep underground.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    if (!sci) {
+      S('path', { d: 'M280,150 V500 Q280,530 310,530 H490 Q520,530 520,500 V150', fill: '#fff7ed', stroke: '#9ca3af', 'stroke-width': 8, 'stroke-linejoin': 'round' }, svg);
+      const liquid = S('rect', { x: 284, width: 232, fill: '#fdba74' }, svg);
+      const bub = Array.from({ length: 22 }, (_, i) => ({ el: S('circle', { fill: '#fff', stroke: '#fb923c', 'stroke-width': 3 }, svg), x: 300 + (i * 53) % 200, ph: i * 0.37, r: 8 + (i % 4) * 4 }));
+      label(svg, 400, 80, 'Gas bubbles push the foam up', 32, '#1f2a44');
+      scene.loop((dt, t) => {
+        const lvl = 420 - 170 * (0.5 + 0.5 * Math.sin(t * 0.9));
+        liquid.setAttribute('y', lvl); liquid.setAttribute('height', 526 - lvl);
+        bub.forEach(b => {
+          const k = (t * 0.5 + b.ph) % 1, y = 520 - k * (520 - lvl);
+          b.el.setAttribute('cx', b.x + Math.sin(t * 3 + b.ph * 9) * 6); b.el.setAttribute('cy', y); b.el.setAttribute('r', b.r * (0.5 + k * 0.6));
+        });
+      });
+      return;
+    }
+    label(svg, 400, 60, 'acid + base → water + salt + carbon dioxide', 26, '#1f2a44');
+    const mk = (fill, text, r) => { const g = S('g', {}, svg); S('circle', { r, fill, stroke: '#0003', 'stroke-width': 3 }, g); label(g, 0, 7, text, 19, '#1f2a44'); return g; };
+    const acid = mk('#fca5a5', 'acid', 52), base = mk('#93c5fd', 'base', 52);
+    const water = mk('#bae6fd', 'water', 44), salt = mk('#f1f5f9', 'salt', 40), gas = mk('#d1d5db', 'CO₂', 48);
+    const flash = S('circle', { cx: 400, cy: 320, r: 70, fill: '#fde047', opacity: 0 }, svg);
+    label(svg, 400, 560, 'The carbon dioxide gas makes the bubbles', 24, '#1f2a44');
+    const put = (g, x, y, o) => { g.setAttribute('transform', `translate(${x},${y})`); g.setAttribute('opacity', o); };
+    scene.loop((dt, t) => {
+      const c = t % 5, a = clamp(c / 1.5, 0, 1), b = clamp((c - 1.7) / 1.6, 0, 1);
+      put(acid, 150 + 200 * a, 320, c < 1.6 ? 1 : 0); put(base, 650 - 200 * a, 320, c < 1.6 ? 1 : 0);
+      flash.setAttribute('opacity', c > 1.5 && c < 1.9 ? 0.8 : 0);
+      const o = c > 1.7 ? (c > 4.5 ? (5 - c) * 2 : 1) : 0;
+      put(water, 400 - 190 * b, 320 + 90 * b, o); put(salt, 400 + 190 * b, 320 + 90 * b, o); put(gas, 400, 320 - 170 * b, o);
+    });
+  },
+  home: 'With a grown-up, put two spoons of baking soda in a cup. Stand the cup on a tray. Pour in some vinegar and watch! A drop of dish soap makes even more foam.',
+  safety: 'Do this on a tray or outside. Do not taste it, and keep it away from your eyes.',
+  quiz: {
+    explorer: [
+      { q: 'What makes the foam rise?', options: ['Gas bubbles', 'Ice', 'Sand'], answer: 0 },
+      { q: 'What do we pour onto the baking soda?', options: ['Vinegar', 'Milk', 'Honey'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What kind of liquid is vinegar?', options: ['An acid', 'A base', 'A metal'], answer: 0 },
+      { q: 'Which gas is made in this reaction?', options: ['Carbon dioxide', 'Oxygen', 'Helium'], answer: 0 },
+      { q: 'Why does the reaction stop?', options: ['One ingredient runs out', 'The foam gets too cold', 'The gas turns back into vinegar'], answer: 0 }
     ]
   }
 });
