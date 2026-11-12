@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Science Lab">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eaf4ff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Science Lab</title>
+<style>
+:root{
+  --bg:#eaf4ff; --ink:#1f2a44; --muted:#5b6785; --card:#ffffff; --line:#d6e2f3;
+  --accent:#3b82f6; --good:#16a34a; --bad:#e11d48; --sun:#fbbf24;
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overscroll-behavior:none;-webkit-touch-callout:none}
+body{
+  font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif;
+  color:var(--ink);background:linear-gradient(160deg,#eaf4ff,#f6efff);
+  -webkit-user-select:none;user-select:none;font-size:18px;
+}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation}
+h1,h2,h3,p{margin:0}
+
+.btn{background:var(--accent);color:#fff;font-weight:800;font-size:1.1rem;padding:14px 22px;border-radius:999px;
+  box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s,box-shadow .08s,opacity .2s;min-height:54px}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--line);border:2px solid var(--line)}
+.btn.pulse{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+
+/* ---------- start / profile screens ---------- */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;overflow:auto}
+.logo{font-size:5rem;animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-12px) rotate(4deg)}}
+.title{font-size:2.6rem;font-weight:900;letter-spacing:.5px}
+.sub{color:var(--muted);font-size:1.15rem}
+.who{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+.who-card{position:relative;background:var(--card);border-radius:var(--r);padding:20px 26px;min-width:170px;box-shadow:0 6px 0 var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:6px}
+.who-card:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.who-card .av{font-size:3.4rem}
+.who-card .nm{font-weight:900;font-size:1.3rem}
+.who-card .lv{color:var(--muted);font-size:.95rem}
+.who-card.add{border:3px dashed #b9c8e2;background:transparent;box-shadow:none;color:var(--muted);justify-content:center}
+.who-del{position:absolute;top:6px;right:8px;background:none;color:#b3bdd1;font-size:1.1rem;padding:6px}
+.form{background:var(--card);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:18px;max-width:560px;width:100%;box-shadow:0 6px 0 var(--line);text-align:left}
+.form label{font-weight:800}
+.form input[type=text]{font:inherit;font-size:1.3rem;padding:12px 16px;border-radius:14px;border:3px solid var(--line);width:100%;-webkit-user-select:text;user-select:text}
+.pick{display:flex;flex-wrap:wrap;gap:10px}
+.pick button{background:#f1f6ff;border:3px solid transparent;border-radius:16px;padding:10px 14px;font-size:1.6rem;min-width:58px}
+.pick button.on{border-color:var(--accent);background:#dbeafe}
+.pick.lvl button{font-size:1.05rem;font-weight:800;flex:1;text-align:left;line-height:1.3}
+.pick.lvl small{display:block;font-weight:600;color:var(--muted)}
+
+/* ---------- home ---------- */
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 18px;background:rgba(255,255,255,.75);backdrop-filter:blur(8px);border-bottom:2px solid var(--line)}
+.topbar .grow{flex:1;min-width:0}
+.chip{background:#fff;border:2px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:800;font-size:.95rem;min-height:44px;white-space:nowrap}
+.home{flex:1;overflow:auto;padding:22px;-webkit-overflow-scrolling:touch}
+.cat{font-size:1.2rem;font-weight:900;margin:18px 4px 12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.card{position:relative;background:var(--card);border-radius:var(--r);padding:20px;text-align:left;box-shadow:0 6px 0 var(--line);
+  border-top:10px solid var(--c);display:flex;flex-direction:column;gap:8px;min-height:170px}
+.card:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.card .em{font-size:3.2rem}
+.card .t{font-weight:900;font-size:1.3rem}
+.card .d{color:var(--muted);font-size:.98rem}
+.card .star{position:absolute;top:12px;right:14px;font-size:1.8rem;filter:grayscale(1);opacity:.25}
+.card .star.got{filter:none;opacity:1}
+
+/* ---------- experiment ---------- */
+.exp{flex:1;display:flex;flex-direction:column;min-height:0}
+.exp .topbar{border-bottom-color:var(--accent)}
+.exp-title{font-weight:900;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dots{display:flex;gap:6px;align-items:center}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--accent);opacity:.5}
+.dots i.now{background:var(--accent);width:30px;border-radius:8px}
+.exp-main{flex:1;min-height:0;display:grid;grid-template-columns:1.55fr 1fr;gap:14px;padding:14px}
+@media (orientation:portrait){.exp-main{grid-template-columns:1fr;grid-template-rows:56% 1fr}}
+.stage{background:var(--card);border-radius:var(--r);box-shadow:0 6px 0 var(--line);overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative}
+.stage svg{flex:1;min-height:0;width:100%;display:block;touch-action:none}
+.stage svg text{font-family:inherit;pointer-events:none}
+.stage svg .item{cursor:grab}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 14px;border-top:2px solid var(--line);background:#f8fbff}
+.controls:empty{display:none}
+.controls label{font-weight:800;display:flex;align-items:center;gap:10px}
+.controls input[type=range]{width:190px;height:34px;accent-color:var(--accent)}
+.controls .read{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.mini{background:#fff;border:2px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:800;min-height:44px}
+.seg{display:flex;align-items:center;gap:6px}
+.seg-l{font-weight:800;margin-right:4px}
+.seg-b{background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-weight:800;min-width:46px;min-height:44px}
+.seg-b.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.panel{background:var(--card);border-radius:var(--r);box-shadow:0 6px 0 var(--line);padding:20px;display:flex;flex-direction:column;gap:14px;overflow:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.panel h2{font-size:1.5rem;font-weight:900;color:var(--accent);display:flex;align-items:center;gap:10px}
+.panel h2 .say{margin-left:auto}
+.say{background:#f1f6ff;border-radius:50%;width:46px;height:46px;font-size:1.3rem;flex:none}
+.narr{font-size:1.2rem;line-height:1.55}
+.big .narr{font-size:1.45rem;line-height:1.6}
+.sent{border-radius:8px;padding:1px 2px;transition:background .15s}
+.sent.on{background:#fff0a3}
+.note{background:#fff8dc;border:3px solid var(--sun);border-radius:18px;padding:14px 16px;position:relative}
+.note.pop{animation:pop .35s}
+@keyframes pop{0%{transform:scale(.94)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+.goals{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.goals li{display:flex;gap:10px;align-items:center;font-weight:700;font-size:1.05rem;color:var(--muted)}
+.goals li::before{content:"";width:26px;height:26px;border-radius:8px;border:3px solid var(--line);flex:none;display:grid;place-items:center}
+.goals li.done{color:var(--good)}
+.goals li.done::before{content:"✓";background:var(--good);border-color:var(--good);color:#fff;font-weight:900}
+.spacer{flex:1}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:#f1f6ff;border:3px solid var(--line);border-radius:16px;padding:14px 16px;font-weight:800;font-size:1.15rem;text-align:left;min-height:58px}
+.opt.on{border-color:var(--accent);background:#dbeafe}
+.opt.right{border-color:var(--good);background:#dcfce7}
+.opt.wrong{border-color:var(--bad);background:#ffe4e6;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.homebox{background:#f0fdf4;border:3px solid #86efac;border-radius:18px;padding:14px 16px}
+.homebox h3{font-size:1.1rem;margin-bottom:6px}
+.homebox .narr{font-size:1.05rem}
+.safety{color:var(--bad);font-weight:800;margin-top:6px;font-size:1rem}
+
+.hero{flex:1;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 22%,#fff),#fff 70%)}
+.hero .main{font-size:min(30vh,34vw,11rem);animation:bob 3s ease-in-out infinite}
+.hero .bit{position:absolute;font-size:2.6rem;animation:bob 4s ease-in-out infinite}
+.results{flex:1;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:16px}
+.pred{border-radius:18px;padding:16px 18px;font-size:1.15rem;font-weight:700;background:#f1f6ff;border:3px solid var(--line)}
+.pred.ok{background:#dcfce7;border-color:#86efac}
+.pred.no{background:#fff8dc;border-color:var(--sun)}
+.pred b{display:block;font-size:1.35rem;margin-top:4px}
+.obs{display:flex;flex-wrap:wrap;gap:10px}
+.obs span{background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800}
+.results h3{font-size:1.1rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.starwin{flex:1;display:grid;place-items:center;text-align:center;background:radial-gradient(circle,#fff7cf,#fff 70%)}
+.starwin .s{font-size:9rem;animation:spin 1s cubic-bezier(.2,1.6,.4,1)}
+@keyframes spin{from{transform:scale(0) rotate(-200deg)}}
+.starwin h2{font-size:2rem}
+
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9}
+.conf{position:absolute;top:-50px;animation:fall 2.2s ease-in forwards}
+@keyframes fall{to{transform:translateY(112vh) rotate(540deg)}}
+.ray{stroke-dasharray:16 12;animation:dash .9s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   SCIENCE LAB
+   ---------------------------------------------------------------------
+   HOW TO ADD A NEW EXPERIMENT
+   Scroll to section 5 and add one more  Lab.register({...})  block.
+   The shell (menu, steps, narration, stars, quiz) needs no changes.
+
+   Lab.register({
+     id, title, emoji, color, category, blurb, bits:[emoji...],
+     question:     {explorer, scientist},
+     predict:      {explorer:{prompt, options:[...], answer:index}, scientist:{...}},
+     instructions: {explorer, scientist},
+     goals:        {explorer:[{id,label}], scientist:[{id,label}]},
+     build(ctx),            // draws the interactive scene (see ctx below)
+     observations(data,lv), // -> ["🍎 Apple floats", ...] shown on the Results step
+     result(lv,data),       // -> text: what happened
+     why:          {explorer, scientist},
+     whyAnim(ctx),          // small looping animation that explains why
+     home:         {explorer, scientist},  safety: "optional warning",
+     quiz:         {explorer:[{q, options:[...], answer:index}], scientist:[...]}
+   });
+
+   ctx = { svg (800x600 drawing area), controls (HTML bar under the stage),
+           scene.loop(fn(dt,t)), scene.after(ms,fn), level, sci (true = Scientist),
+           data (your observations), note(text) (caption + voice), goal(id) }
+   Text values may be a plain string or {explorer:'..', scientist:'..'}.
+   ===================================================================== */
+
+/* ===================== 1. Helpers ===================== */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    e.append(kid.nodeType ? kid : document.createTextNode(kid));
+  }
+  return e;
+}
+const NS = 'http://www.w3.org/2000/svg';
+function S(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) { if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function svgPoint(svg, ev) {
+  const m = svg.getScreenCTM();
+  if (!m) return { x: 0, y: 0 };
+  const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m.inverse());
+  return { x: p.x, y: p.y };
+}
+/* Touch + mouse dragging on an SVG element. */
+function drag(el, svg, hnd) {
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const p0 = svgPoint(svg, e);
+    let last = p0;
+    hnd.start && hnd.start(p0);
+    const id = e.pointerId;
+    const mv = ev => { if (ev.pointerId !== id) return; last = svgPoint(svg, ev); hnd.move && hnd.move(last, p0); };
+    const up = ev => {
+      if (ev.pointerId !== id) return;
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      if (ev.type === 'pointerup') { last = svgPoint(svg, ev); hnd.move && hnd.move(last, p0); }
+      hnd.end && hnd.end(last, p0);
+    };
+    window.addEventListener('pointermove', mv);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+function emojiItem(parent, emoji, size) {
+  const g = S('g', { class: 'item' }, parent);
+  S('circle', { r: size * 0.68, fill: 'transparent' }, g);
+  S('text', { 'font-size': size, 'text-anchor': 'middle', dy: '.35em', text: emoji }, g);
+  return g;
+}
+function label(parent, x, y, text, size = 18, fill = '#5b6785', anchor = 'middle', weight = 800) {
+  return S('text', { x, y, 'font-size': size, 'text-anchor': anchor, fill, 'font-weight': weight, text }, parent);
+}
+function seg(text, opts, cur, onPick) {
+  const wrap = h('div', { class: 'seg' }, h('span', { class: 'seg-l' }, text));
+  opts.forEach(o => {
+    const b = h('button', { class: 'seg-b' + (o.v === cur ? ' on' : ''), onclick: () => {
+      wrap.querySelectorAll('.seg-b').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); onPick(o.v);
+    } }, o.t);
+    wrap.append(b);
+  });
+  return wrap;
+}
+function listWords(a) {
+  if (!a.length) return '';
+  if (a.length === 1) return a[0];
+  return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+}
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function confetti(n = 28) {
+  const fx = $('#fx'), set = ['⭐', '✨', '🎉', '🌟'];
+  for (let i = 0; i < n; i++) {
+    const s = h('span', { class: 'conf', style: `left:${Math.random() * 100}%;animation-delay:${Math.random() * .5}s;font-size:${18 + Math.random() * 24}px` }, set[i % 4]);
+    fx.append(s); setTimeout(() => s.remove(), 3000);
+  }
+}
+/* Animation loop + timers that are cleaned up automatically when a step ends. */
+class Scene {
+  constructor() {
+    this.loops = new Set(); this.timers = new Set(); this.alive = true; this.last = 0;
+    const tick = t => {
+      if (!this.alive) return;
+      const dt = this.last ? Math.min(0.033, (t - this.last) / 1000) : 0.016;
+      this.last = t;
+      this.loops.forEach(f => f(dt, t / 1000));
+      this.raf = requestAnimationFrame(tick);
+    };
+    this.raf = requestAnimationFrame(tick);
+  }
+  loop(f) { this.loops.add(f); return () => this.loops.delete(f); }
+  after(ms, f) { const id = setTimeout(() => { this.timers.delete(id); if (this.alive) f(); }, ms); this.timers.add(id); }
+  destroy() { this.alive = false; cancelAnimationFrame(this.raf); this.timers.forEach(clearTimeout); this.loops.clear(); }
+}
+
+/* ===================== 2. Saved players ===================== */
+const Store = {
+  key: 'sciencelab.v1',
+  data: { profiles: [], current: null },
+  load() { try { const d = JSON.parse(localStorage.getItem(this.key)); if (d && Array.isArray(d.profiles)) this.data = d; } catch (_) {} },
+  save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (_) {} },
+  get me() { return this.data.profiles.find(p => p.id === this.data.current) || null; }
+};
+
+/* ===================== 3. Voice (reads text aloud) ===================== */
+const Voice = {
+  synth: window.speechSynthesis || null, voice: null, token: 0,
+  init() {
+    if (!this.synth) return;
+    const pick = () => {
+      const vs = this.synth.getVoices().filter(v => /^en/i.test(v.lang));
+      if (!vs.length) return;
+      const score = v => (/natural|neural|enhanced|premium/i.test(v.name) ? 4 : 0)
+        + (/google|samantha|aria|jenny|libby|sonia|karen|daniel|ava/i.test(v.name) ? 2 : 0)
+        + (/en[-_]US/i.test(v.lang) ? 2 : /en[-_]GB/i.test(v.lang) ? 1 : 0);
+      this.voice = vs.sort((a, b) => score(b) - score(a))[0];
+    };
+    pick();
+    if (this.synth.addEventListener) this.synth.addEventListener('voiceschanged', pick);
+    /* iOS only allows speech after a tap: unlock it on the first touch. */
+    window.addEventListener('pointerdown', () => { try { this.synth.speak(new SpeechSynthesisUtterance(' ')); } catch (_) {} }, { once: true });
+  },
+  clean(t) {
+    return t.replace(/\p{Extended_Pictographic}|️|‍/gu, '')
+      .replace(/g\/cm³/g, 'grams per cubic centimeter')
+      .replace(/(\d) V\b/g, '$1 volts').replace(/(\d) A\b/g, '$1 amps')
+      .replace(/÷/g, ' divided by ').replace(/=/g, ' equals ')
+      .replace(/\s\+\s/g, ' plus ').replace(/−/g, 'minus').replace(/\+/g, 'plus')
+      .replace(/➜|↺/g, '');
+  },
+  stop() {
+    this.token++;
+    if (this.synth) this.synth.cancel();
+    document.querySelectorAll('.sent.on').forEach(e => e.classList.remove('on'));
+  },
+  speak(parts, rate) {
+    this.stop();
+    if (!this.synth) return;
+    const tk = this.token; let i = 0;
+    const next = () => {
+      if (tk !== this.token || i >= parts.length) return;
+      const p = parts[i++], txt = this.clean(p.text).trim();
+      if (!txt) return next();
+      const u = new SpeechSynthesisUtterance(txt);
+      if (this.voice) { u.voice = this.voice; u.lang = this.voice.lang; } else u.lang = 'en-US';
+      u.rate = rate; u.pitch = 1.05;
+      u.onstart = () => { if (tk === this.token && p.el) p.el.classList.add('on'); };
+      u.onend = u.onerror = () => { if (p.el) p.el.classList.remove('on'); if (tk === this.token) next(); };
+      this.synth.speak(u);
+    };
+    setTimeout(next, 70);
+  }
+};
+function sentences(text) {
+  text = String(text);
+  const out = [], re = /[.!?]+(?=\s|$)/g; let last = 0;
+  while (re.exec(text)) { out.push(text.slice(last, re.lastIndex).trim()); last = re.lastIndex; }
+  if (last < text.length) out.push(text.slice(last).trim());
+  return out.filter(Boolean);
+}
+/* A paragraph whose sentences light up while they are read aloud. */
+function narr(text) {
+  const p = h('p', { class: 'narr' });
+  sentences(text).forEach(s => p.append(h('span', { class: 'sent' }, s), ' '));
+  return p;
+}
+function readEls(els, force) {
+  const me = Store.me;
+  if (!me || (!me.sound && !force)) return;
+  const parts = [];
+  els.forEach(el => el && el.querySelectorAll('.sent').forEach(s => parts.push({ text: s.textContent, el: s })));
+  if (!parts.length) return;
+  Voice.speak(parts, me.level === 'explorer' ? 0.85 : 0.97);
+}
+
+/* ===================== 4. The lab shell ===================== */
+const Lab = { list: [], register(x) { this.list.push(x); } };
+const STEPS = ['Question', 'Predict', 'Experiment', 'Results', 'Why?', 'Quiz'];
+const AVATARS = ['🦊', '🐼', '🦄', '🐯', '🐸', '🐙', '🦖', '🚀', '🦉', '🐬'];
+const LEVELS = {
+  explorer: { icon: '🐣', name: 'Explorer', hint: 'Short words. Everything is read aloud.' },
+  scientist: { icon: '🚀', name: 'Scientist', hint: 'More detail, numbers and things to change.' }
+};
+
+const App = {
+  root: null, scene: null, exp: null, step: 0, pred: null, data: {},
+  start() { this.root = $('#app'); Store.me ? this.home() : this.players(); },
+  clear() { if (this.scene) { this.scene.destroy(); this.scene = null; } Voice.stop(); },
+
+  /* ---- who is playing? ---- */
+  players() {
+    this.clear();
+    const who = h('div', { class: 'who' });
+    Store.data.profiles.forEach(p => {
+      const card = h('button', { class: 'who-card', onclick: () => { Store.data.current = p.id; Store.save(); this.home(); } },
+        h('span', { class: 'av' }, p.avatar), h('span', { class: 'nm' }, p.name),
+        h('span', { class: 'lv' }, LEVELS[p.level].icon + ' ' + LEVELS[p.level].name + '  ·  ⭐ ' + Object.keys(p.stars || {}).length));
+      card.append(h('span', { class: 'who-del', role: 'button', 'aria-label': 'Remove player', onclick: e => {
+        e.stopPropagation();
+        if (confirm('Remove ' + p.name + ' and their stars?')) {
+          Store.data.profiles = Store.data.profiles.filter(x => x.id !== p.id);
+          if (Store.data.current === p.id) Store.data.current = null;
+          Store.save(); this.players();
+        }
+      } }, '✕'));
+      who.append(card);
+    });
+    who.append(h('button', { class: 'who-card add', onclick: () => this.addPlayer() }, h('span', { class: 'av' }, '➕'), h('span', { class: 'nm' }, 'New scientist')));
+    this.root.replaceChildren(h('div', { class: 'center' },
+      h('div', { class: 'logo' }, '🧪'), h('h1', { class: 'title' }, 'Science Lab'),
+      h('p', { class: 'sub' }, Store.data.profiles.length ? 'Who is experimenting today?' : 'Welcome! Let’s set up your lab coat.'), who));
+  },
+  addPlayer() {
+    let avatar = AVATARS[0], level = 'explorer';
+    const name = h('input', { type: 'text', maxlength: 14, placeholder: 'Your name', autocomplete: 'off' });
+    const av = h('div', { class: 'pick' });
+    AVATARS.forEach(a => { const b = h('button', { class: a === avatar ? 'on' : '', onclick: () => { avatar = a; av.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); } }, a); av.append(b); });
+    const lv = h('div', { class: 'pick lvl' });
+    Object.keys(LEVELS).forEach(k => { const L = LEVELS[k]; const b = h('button', { class: k === level ? 'on' : '', onclick: () => { level = k; lv.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); } }, L.icon + ' ' + L.name, h('small', null, L.hint)); lv.append(b); });
+    const go = () => {
+      const n = name.value.trim() || 'Scientist';
+      const p = { id: 'p' + Date.now(), name: n, avatar, level, sound: level === 'explorer', stars: {} };
+      Store.data.profiles.push(p); Store.data.current = p.id; Store.save(); this.home();
+    };
+    this.root.replaceChildren(h('div', { class: 'center' }, h('div', { class: 'form' },
+      h('h2', null, 'New scientist'),
+      h('label', null, 'Name'), name,
+      h('label', null, 'Pick your lab buddy'), av,
+      h('label', null, 'Level'), lv,
+      h('div', { style: 'display:flex;gap:12px;justify-content:flex-end' },
+        Store.data.profiles.length ? h('button', { class: 'btn ghost', onclick: () => this.players() }, 'Back') : null,
+        h('button', { class: 'btn', onclick: go }, 'Start ➜')))));
+  },
+
+  /* ---- menu of experiments ---- */
+  home() {
+    this.clear();
+    const me = Store.me; if (!me) return this.players();
+    const stars = Object.keys(me.stars || {}).length;
+    const body = h('div', { class: 'home' });
+    const cats = [...new Set(Lab.list.map(e => e.category))];
+    cats.forEach(c => {
+      body.append(h('div', { class: 'cat' }, c));
+      const grid = h('div', { class: 'grid' });
+      Lab.list.filter(e => e.category === c).forEach(e => grid.append(
+        h('button', { class: 'card', style: `--c:${e.color}`, onclick: () => this.open(e) },
+          h('span', { class: 'star' + (me.stars[e.id] ? ' got' : '') }, '⭐'),
+          h('span', { class: 'em' }, e.emoji), h('span', { class: 't' }, e.title), h('span', { class: 'd' }, e.blurb))));
+      body.append(grid);
+    });
+    this.root.replaceChildren(
+      h('div', { class: 'topbar' },
+        h('span', { style: 'font-size:2rem' }, me.avatar),
+        h('div', { class: 'grow' }, h('div', { style: 'font-weight:900;font-size:1.3rem' }, 'Hi, ' + me.name + '!'),
+          h('div', { style: 'color:var(--muted);font-size:.95rem' }, `⭐ ${stars} of ${Lab.list.length} stars`)),
+        this.levelChip(() => this.home()),
+        h('button', { class: 'chip', onclick: () => this.players() }, '👥 Switch')),
+      body);
+  },
+  levelChip(after) {
+    const me = Store.me, L = LEVELS[me.level];
+    return h('button', { class: 'chip', onclick: () => {
+      me.level = me.level === 'explorer' ? 'scientist' : 'explorer';
+      Store.save(); after();
+    } }, L.icon + ' ' + L.name);
+  },
+
+  /* ---- one experiment, six steps ---- */
+  open(exp) { this.exp = exp; this.step = 0; this.pred = null; this.data = {}; this.render(); },
+  go(n) { this.step = n; this.render(); },
+  render() {
+    this.clear();
+    const me = Store.me, lv = me.level, exp = this.exp;
+    const T = o => (o == null ? '' : typeof o === 'string' ? o : (o[lv] != null ? o[lv] : o.explorer));
+    const stage = h('div', { class: 'stage' });
+    const panel = h('div', { class: 'panel' + (lv === 'explorer' ? ' big' : '') });
+    const dots = h('div', { class: 'dots' });
+    STEPS.forEach((s, i) => dots.append(h('i', { class: i === this.step ? 'now' : i < this.step ? 'done' : '', title: s })));
+    const top = h('div', { class: 'topbar' },
+      h('button', { class: 'chip', onclick: () => this.home() }, '🏠'),
+      h('div', { class: 'grow exp-title' }, exp.emoji + ' ' + exp.title),
+      dots,
+      this.levelChip(() => this.open(exp)),
+      h('button', { class: 'chip', 'aria-label': 'Voice on or off', onclick: e => { me.sound = !me.sound; Store.save(); e.currentTarget.textContent = me.sound ? '🔊' : '🔇'; if (!me.sound) Voice.stop(); } }, me.sound ? '🔊' : '🔇'));
+    this.root.replaceChildren(h('div', { class: 'exp', style: `--accent:${exp.color}` }, top, h('div', { class: 'exp-main' }, stage, panel)));
+    this.scene = new Scene();
+    const read = [];
+    const head = (text) => h('h2', null, text, h('button', { class: 'say', 'aria-label': 'Read aloud', onclick: () => readEls(read, true) }, '🔊'));
+    const say = (text) => { const p = narr(text); read.push(p); return p; };
+    const ui = { stage, panel, T, lv, head, say, read, exp };
+    [this.sQuestion, this.sPredict, this.sExperiment, this.sResults, this.sWhy, this.sQuiz][this.step].call(this, ui);
+    readEls(read);
+  },
+  hero(exp) {
+    const el = h('div', { class: 'hero' }, h('div', { class: 'main' }, exp.emoji));
+    const spots = [[8, 10], [80, 14], [12, 72], [78, 70], [46, 6], [48, 82]];
+    (exp.bits || []).slice(0, 6).forEach((b, i) => el.append(h('span', { class: 'bit', style: `left:${spots[i][0]}%;top:${spots[i][1]}%;animation-delay:${-i * .7}s` }, b)));
+    return el;
+  },
+  newSvg(stage) { return S('svg', { viewBox: '0 0 800 600', preserveAspectRatio: 'xMidYMid meet' }, stage); },
+
+  sQuestion({ stage, panel, T, head, say, exp }) {
+    stage.append(this.hero(exp));
+    panel.append(head('The big question'), say(T(exp.question)), h('div', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: () => this.go(1) }, 'Make a prediction ➜'));
+  },
+  sPredict({ stage, panel, T, lv, head, say, read, exp }) {
+    stage.append(this.hero(exp));
+    const P = exp.predict[lv] || exp.predict.explorer;
+    const next = h('button', { class: 'btn', disabled: this.pred == null, onclick: () => this.go(2) }, 'Start the experiment ➜');
+    const opts = h('div', { class: 'opts' });
+    P.options.forEach((o, i) => {
+      const b = h('button', { class: 'opt' + (this.pred === i ? ' on' : ''), onclick: () => {
+        this.pred = i; opts.querySelectorAll('.opt').forEach(x => x.classList.remove('on')); b.classList.add('on');
+        next.disabled = false; next.classList.add('pulse');
+      } }, h('span', { class: 'sent' }, o));
+      opts.append(b);
+    });
+    panel.append(head('What do you think?'), say('Scientists make a guess before they test. It is called a prediction. ' + P.prompt), opts, h('div', { class: 'spacer' }), next);
+    read.push(opts);
+  },
+  sExperiment({ stage, panel, T, lv, head, exp }) {
+    const svg = this.newSvg(stage);
+    const controls = h('div', { class: 'controls' }); stage.append(controls);
+    const noteEl = h('div', { class: 'note' });
+    const goals = (exp.goals[lv] || exp.goals.explorer);
+    const list = h('ul', { class: 'goals' });
+    const done = new Set();
+    goals.forEach(g => list.append(h('li', { 'data-g': g.id }, g.label)));
+    const next = h('button', { class: 'btn', disabled: true, onclick: () => this.go(3) }, 'What happened? ➜');
+    const ctx = {
+      svg, controls, scene: this.scene, level: lv, sci: lv === 'scientist', data: this.data,
+      note: (text) => {
+        noteEl.replaceChildren(narr(text));
+        noteEl.classList.remove('pop'); void noteEl.offsetWidth; noteEl.classList.add('pop');
+        readEls([noteEl]);
+      },
+      goal: (id) => {
+        if (done.has(id) || !goals.some(g => g.id === id)) return;
+        done.add(id);
+        const li = list.querySelector(`[data-g="${id}"]`); if (li) li.classList.add('done');
+        if (done.size === goals.length) { next.disabled = false; next.classList.add('pulse'); confetti(12); }
+      }
+    };
+    panel.append(h('h2', null, 'Experiment', h('button', { class: 'say', 'aria-label': 'Read aloud', onclick: () => readEls([noteEl], true) }, '🔊')),
+      noteEl, h('h3', { style: 'font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px' }, 'To do'), list, h('div', { class: 'spacer' }), next);
+    try { exp.build(ctx); } catch (err) { console.error(err); next.disabled = false; }
+    ctx.note(T(exp.instructions));
+  },
+  sResults({ stage, panel, T, lv, head, say, exp }) {
+    const P = exp.predict[lv] || exp.predict.explorer;
+    const ok = this.pred === P.answer;
+    const box = h('div', { class: 'results' });
+    if (this.pred != null) {
+      box.append(h('div', { class: 'pred ' + (ok ? 'ok' : 'no') }, 'Your prediction: ' + P.options[this.pred],
+        h('b', null, ok ? '✅ You predicted it!' : '🤔 Surprise! It was: ' + P.options[P.answer]),
+        ok ? null : h('span', null, 'Surprises are how scientists learn new things.')));
+    }
+    const obs = exp.observations ? exp.observations(this.data, lv) : [];
+    if (obs.length) {
+      box.append(h('h3', null, 'What you saw'));
+      const o = h('div', { class: 'obs' }); obs.forEach(x => o.append(h('span', null, x))); box.append(o);
+    }
+    stage.append(box);
+    if (ok) confetti(10);
+    panel.append(head('What happened?'), say(exp.result(lv, this.data)), h('div', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: () => this.go(4) }, 'But why? ➜'));
+  },
+  sWhy({ stage, panel, T, lv, head, say, read, exp }) {
+    const svg = this.newSvg(stage);
+    try { if (exp.whyAnim) exp.whyAnim({ svg, scene: this.scene, level: lv, sci: lv === 'scientist' }); } catch (err) { console.error(err); }
+    const hb = h('div', { class: 'homebox' }, h('h3', null, '🏠 Try it at home'));
+    const hp = narr(T(exp.home)); read.push(hp); hb.append(hp);
+    if (exp.safety) hb.append(h('div', { class: 'safety' }, '⚠️ ' + T(exp.safety)));
+    panel.append(head('Why?'), say(T(exp.why)), hb, h('div', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: () => this.go(5) }, 'Quiz time ➜'));
+  },
+  sQuiz({ stage, panel, lv, exp, read }) {
+    stage.append(this.hero(exp));
+    const qs = exp.quiz[lv] || exp.quiz.explorer;
+    const show = (i) => {
+      if (i >= qs.length) return this.win(stage, panel);
+      const q = qs[i];
+      const opts = h('div', { class: 'opts' });
+      const order = shuffle(q.options.map((t, k) => ({ t, k })));
+      const qp = narr(q.q);
+      const fb = h('div', { class: 'narr', style: 'font-weight:800;min-height:1.6em' });
+      order.forEach(o => {
+        const b = h('button', { class: 'opt', onclick: () => {
+          if (opts.dataset.done) return;
+          if (o.k === q.answer) {
+            opts.dataset.done = 1; b.classList.add('right');
+            fb.replaceChildren(narr('Yes! That is right.')); readEls([fb]);
+            this.scene.after(1500, () => show(i + 1));
+          } else {
+            b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
+            fb.replaceChildren(narr('Not quite. Try again!')); readEls([fb]);
+          }
+        } }, h('span', { class: 'sent' }, o.t));
+        opts.append(b);
+      });
+      panel.replaceChildren(h('h2', null, `Quiz  ${i + 1} / ${qs.length}`, h('button', { class: 'say', 'aria-label': 'Read aloud', onclick: () => readEls([qp, opts], true) }, '🔊')), qp, opts, fb);
+      readEls([qp, opts]);
+    };
+    show(0);
+  },
+  win(stage, panel) {
+    const me = Store.me, exp = this.exp;
+    me.stars[exp.id] = true; Store.save();
+    stage.replaceChildren(h('div', { class: 'starwin' }, h('div', null, h('div', { class: 's' }, '⭐'), h('h2', null, 'You earned a star!'))));
+    const p = narr(`Great work, ${me.name}! You finished ${exp.title} like a real scientist.`);
+    panel.replaceChildren(h('h2', null, 'Well done!'), p, h('div', { class: 'spacer' }),
+      h('button', { class: 'btn ghost', onclick: () => this.open(exp) }, '↺ Do it again'),
+      h('button', { class: 'btn', onclick: () => this.home() }, 'Back to the lab ➜'));
+    confetti(40); readEls([p]);
+  }
+};
+
+/* ===================== 5. Experiments ===================== */
+
+/* ---------- 5.1  Sink or Float? ---------- */
+Lab.register({
+  id: 'sink-float', title: 'Sink or Float?', emoji: '🛁', color: '#0ea5e9', category: 'Water and matter',
+  blurb: 'Drop things in water and see what happens.',
+  bits: ['🍎', '🪨', '🦆', '🔑', '🧊', '🥚'],
+  question: {
+    explorer: 'Some things float on water. Some things sink to the bottom. Which ones will float?',
+    scientist: 'A tiny coin sinks, but a giant ship floats. Why do some things float while others sink?'
+  },
+  predict: {
+    explorer: { prompt: 'Will the apple float or sink?', options: ['🍎 It will float', '🍎 It will sink'], answer: 0 },
+    scientist: { prompt: 'An egg sinks in normal water. What will happen if we stir lots of salt into the water?', options: ['The egg still sinks', 'The egg floats up', 'The egg gets heavier'], answer: 1 }
+  },
+  instructions: {
+    explorer: 'Drag each thing into the water. Watch what happens!',
+    scientist: 'Drop objects into the tank. Then move the salt slider and watch the egg closely.'
+  },
+  goals: {
+    explorer: [{ id: 'test4', label: 'Drop 4 different things in the water' }],
+    scientist: [{ id: 'test4', label: 'Test 4 different objects' }, { id: 'egg', label: 'Add salt until the egg floats' }]
+  },
+  items: [
+    { id: 'apple', name: 'apple', emoji: '🍎', d: 0.80 }, { id: 'rock', name: 'rock', emoji: '🪨', d: 2.70 },
+    { id: 'coin', name: 'coin', emoji: '🪙', d: 8.90 }, { id: 'duck', name: 'toy duck', emoji: '🦆', d: 0.30 },
+    { id: 'wood', name: 'piece of wood', emoji: '🪵', d: 0.60 }, { id: 'key', name: 'key', emoji: '🔑', d: 8.00 },
+    { id: 'ice', name: 'ice cube', emoji: '🧊', d: 0.92 }, { id: 'egg', name: 'egg', emoji: '🥚', d: 1.08 }
+  ],
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.tested = data.tested || {};
+    const SURF = 270, BOT = 556, TX0 = 120, TX1 = 680, R = 30;
+    let liquid = 1.0;
+    S('rect', { x: 30, y: 122, width: 740, height: 12, rx: 6, fill: '#c89b6a' }, svg);
+    const water = S('rect', { x: TX0, y: SURF, width: TX1 - TX0, height: BOT - SURF, fill: '#7cc8f5' }, svg);
+    const gItems = S('g', {}, svg);
+    const veil = S('rect', { x: TX0, y: SURF, width: TX1 - TX0, height: BOT - SURF, fill: '#7cc8f5', opacity: .35, 'pointer-events': 'none' }, svg);
+    S('path', { d: `M${TX0},190 V${BOT + 4} H${TX1} V190`, fill: 'none', stroke: '#52708f', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'pointer-events': 'none' }, svg);
+    const gFx = S('g', { 'pointer-events': 'none' }, svg);
+    const dens = sci ? label(svg, 400, 588, '', 18) : null;
+
+    const items = this.items.map((def, i) => {
+      const it = { ...def, hx: 75 + i * 93, hy: 88, vy: 0, mode: 'shelf', t: 0, said: true };
+      it.x = it.hx; it.y = it.hy;
+      it.g = emojiItem(gItems, def.emoji, 52);
+      if (sci) { label(svg, it.hx, 160, def.d.toFixed(2), 15); if (!i) label(svg, 400, 182, 'density in g/cm³', 13); }
+      drag(it.g, svg, {
+        start: () => { it.mode = 'drag'; gItems.appendChild(it.g); },
+        move: p => { it.x = clamp(p.x, 30, 770); it.y = clamp(p.y, 30, BOT - R); },
+        end: (p, p0) => {
+          const moved = Math.hypot(p.x - p0.x, p.y - p0.y);
+          if (moved < 8 && it.y < 150) {
+            it.mode = 'return';
+            ctx.note(sci ? `The ${it.name} has a density of ${it.d.toFixed(2)} g/cm³. Drag it into the tank to test it.` : `This is the ${it.name}. Drag it into the water!`);
+          } else if (it.x > TX0 + 10 && it.x < TX1 - 10 && it.y > 150) {
+            it.x = clamp(it.x, TX0 + R + 6, TX1 - R - 6); it.vy = 0; it.t = 0; it.said = false;
+            if (it.y < SURF - R) it.mode = 'fall'; else { it.mode = 'water'; }
+          } else it.mode = 'return';
+        }
+      });
+      return it;
+    });
+    function splash(x) {
+      for (let k = 0; k < 2; k++) {
+        const c = S('ellipse', { cx: x, cy: SURF, rx: 10, ry: 4, fill: 'none', stroke: '#fff', 'stroke-width': 4 }, gFx);
+        let t = -k * 0.15;
+        const stop = scene.loop(dt => {
+          t += dt; if (t < 0) return;
+          c.setAttribute('rx', 10 + t * 130); c.setAttribute('ry', 4 + t * 26); c.setAttribute('opacity', 1 - t / 0.7);
+          if (t > 0.7) { stop(); c.remove(); }
+        });
+      }
+    }
+    function announce(it) {
+      const floats = it.d < liquid;
+      it.said = true; it.floats = floats;
+      const salty = liquid > 1.005;
+      data.tested[it.id + (salty ? '-salt' : '')] = { id: it.id, floats, salty, name: it.name, emoji: it.emoji };
+      if (sci) {
+        ctx.note(`The ${it.name} ${floats ? 'floats' : 'sinks'}. Its density is ${it.d.toFixed(2)} g/cm³. That is ${floats ? 'less' : 'more'} than the water (${liquid.toFixed(2)} g/cm³).`);
+      } else {
+        ctx.note(floats ? `The ${it.name} floats! It stays on top of the water.` : `The ${it.name} sinks! It goes down to the bottom.`);
+      }
+      if (new Set(Object.values(data.tested).map(x => x.id)).size >= 4) ctx.goal('test4');
+      if (it.id === 'egg' && floats) { data.eggFloated = true; ctx.goal('egg'); }
+    }
+    scene.loop(dt => {
+      for (const it of items) {
+        if (it.mode === 'return') {
+          const k = Math.min(1, dt * 10);
+          it.x += (it.hx - it.x) * k; it.y += (it.hy - it.y) * k;
+          if (Math.abs(it.x - it.hx) + Math.abs(it.y - it.hy) < 1) { it.x = it.hx; it.y = it.hy; it.mode = 'shelf'; }
+        } else if (it.mode === 'fall') {
+          it.vy += 1600 * dt; it.y += it.vy * dt;
+          if (it.y >= SURF - R) { it.mode = 'water'; it.vy *= 0.35; splash(it.x); }
+        } else if (it.mode === 'water') {
+          const f = clamp((it.y + R - SURF) / (2 * R), 0, 1);
+          const a = 1600 * (1 - f * liquid / it.d) - 4.5 * it.vy * f - 0.4 * it.vy;
+          it.vy += a * dt; it.y += it.vy * dt;
+          if (it.y > BOT - R) { it.y = BOT - R; if (it.vy > 0) it.vy = 0; }
+          if (!it.said) { it.t += dt; if (it.t > 1.3) announce(it); }
+        }
+        it.g.setAttribute('transform', `translate(${it.x.toFixed(1)},${it.y.toFixed(1)})`);
+      }
+    });
+    function setSalt(v) {
+      liquid = 1 + 0.2 * v / 100;
+      const c = `rgb(${Math.round(124 + v * 0.55)},${Math.round(200 + v * 0.1)},${Math.round(245 - v * 0.25)})`;
+      water.setAttribute('fill', c); veil.setAttribute('fill', c);
+      if (dens) dens.textContent = `Water density: ${liquid.toFixed(2)} g/cm³`;
+      items.forEach(it => { if (it.mode === 'water' && it.said && (it.d < liquid) !== it.floats) { it.said = false; it.t = 0.3; } });
+    }
+    if (sci) {
+      const read = h('span', { class: 'read' }, 'no salt');
+      const rng = h('input', { type: 'range', min: 0, max: 100, value: 0, 'aria-label': 'Salt', oninput: () => {
+        const v = +rng.value; setSalt(v);
+        read.textContent = v === 0 ? 'no salt' : v < 35 ? 'a little salt' : v < 70 ? 'salty' : 'very salty';
+      } });
+      controls.append(h('label', null, '🧂 Salt', rng), read);
+      setSalt(0);
+    }
+    controls.append(h('button', { class: 'mini', onclick: () => items.forEach(it => { if (it.mode !== 'shelf' && it.mode !== 'drag') it.mode = 'return'; }) }, '↺ Put everything back'));
+  },
+  observations(data) {
+    return Object.values(data.tested || {}).map(t => `${t.emoji} ${t.floats ? 'floats' : 'sinks'}${t.salty ? ' (salty water)' : ''}`);
+  },
+  result(lv, data) {
+    const all = Object.values(data.tested || {}), plain = all.filter(x => !x.salty), t = plain.length ? plain : all;
+    const up = t.filter(x => x.floats).map(x => 'the ' + x.name), down = t.filter(x => !x.floats).map(x => 'the ' + x.name);
+    const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+    let s = '';
+    if (up.length) s += cap(`${listWords(up)} floated. `);
+    if (down.length) s += cap(`${listWords(down)} sank. `);
+    if (lv === 'scientist') {
+      s += data.eggFloated ? 'The egg sinks in plain water, but it floated when the water was salty enough. The egg did not change. The water did!' : 'Objects with a density below the water floated. Objects with a higher density sank.';
+    } else s += 'Big or small does not decide it. A small coin sinks, but a big apple floats!';
+    return s;
+  },
+  why: {
+    explorer: 'Everything is made of tiny bits. In a rock, the bits are packed very tightly. That makes the rock heavy for its size, so it sinks. Wood has lots of tiny air spaces inside. It is light for its size, so it floats!',
+    scientist: 'Floating depends on density. Density tells us how much stuff, called mass, is packed into a space. Density = mass ÷ volume. Water has a density of 1.00 g/cm³. Objects that are less dense than water float. Objects that are denser sink. Salt makes water denser. Water always pushes up on things, and salty water pushes harder. When the push became bigger than the weight of the egg, the egg rose! A steel ship floats because it is hollow. The steel and all the air inside it together are less dense than water.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('rect', { x: 0, y: 300, width: 800, height: 300, fill: '#bfe3fa' }, svg);
+    const mk = (x, n, fill, dot) => {
+      const g = S('g', {}, svg);
+      S('rect', { x: -60, y: -60, width: 120, height: 120, rx: 12, fill, stroke: '#0003', 'stroke-width': 3 }, g);
+      const cols = Math.ceil(Math.sqrt(n)), gap = 100 / cols;
+      for (let i = 0; i < n; i++) S('circle', { cx: -50 + gap / 2 + (i % cols) * gap, cy: -50 + gap / 2 + Math.floor(i / cols) * gap, r: Math.min(9, gap / 2.6), fill: dot }, g);
+      g.x = x; return g;
+    };
+    const wood = mk(230, 4, '#e9c9a0', '#a8743f'), rock = mk(570, 25, '#b5b9c2', '#565c69');
+    label(svg, 230, 60, 'Wood', 30, '#1f2a44'); label(svg, 570, 60, 'Rock', 30, '#1f2a44');
+    label(svg, 230, 95, sci ? '0.60 g/cm³: less dense than water' : 'Few bits. Light for its size.', 19);
+    label(svg, 570, 95, sci ? '2.70 g/cm³: denser than water' : 'Many bits. Heavy for its size.', 19);
+    label(svg, 400, 580, sci ? 'Water: 1.00 g/cm³' : 'Water', 20, '#2b6a99');
+    scene.loop((dt, t) => {
+      wood.setAttribute('transform', `translate(230,${312 + Math.sin(t * 2) * 6})`);
+      const c = t % 5, y = c < 1.8 ? 180 + (c / 1.8) ** 2 * 320 : 500;
+      rock.setAttribute('transform', `translate(570,${y})`);
+      rock.setAttribute('opacity', c > 4.4 ? (5 - c) / 0.6 : c < 0.3 ? c / 0.3 : 1);
+    });
+  },
+  home: {
+    explorer: 'Fill a bowl with water. Find five small things. Guess first: float or sink? Then test them!',
+    scientist: 'Put an egg in a tall glass of water. It sinks. Now stir in salt, one spoon at a time. How many spoons does it take until the egg floats?'
+  },
+  quiz: {
+    explorer: [
+      { q: 'Which one floats?', options: ['🦆 The toy duck', '🪨 The rock', '🔑 The key'], answer: 0 },
+      { q: 'Why does a rock sink?', options: ['It is heavy for its size', 'It is gray', 'It does not like water'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'An object has a density of 0.50 g/cm³. What does it do in water?', options: ['It floats', 'It sinks', 'It dissolves'], answer: 0 },
+      { q: 'What happens to water when you add salt?', options: ['It gets denser', 'It gets less dense', 'Nothing changes'], answer: 0 },
+      { q: 'How do you work out density?', options: ['mass ÷ volume', 'volume ÷ mass', 'mass + volume'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.2  Color Mixing ---------- */
+Lab.register({
+  id: 'color-mix', title: 'Color Mixing', emoji: '🎨', color: '#a855f7', category: 'Light and color',
+  blurb: 'Mix paints and light to make new colors.',
+  bits: ['🔴', '🟡', '🔵', '🟢', '🟠', '🟣'],
+  question: {
+    explorer: 'We only have three paints: red, yellow and blue. Can we make new colors from them?',
+    scientist: 'Mixing paint and mixing light do not give the same result. What really happens when colors mix?'
+  },
+  predict: {
+    explorer: { prompt: 'What color do blue and yellow make?', options: ['🟢 Green', '🟣 Purple', '🟠 Orange'], answer: 0 },
+    scientist: { prompt: 'What do you get when red, green and blue light shine on the same spot?', options: ['Black', 'Brown', 'White'], answer: 2 }
+  },
+  instructions: {
+    explorer: 'Drag paint into the bowl. Mix two colors and see what you get!',
+    scientist: 'First mix paints in the bowl. Then switch to Light and drag the three spotlights on top of each other.'
+  },
+  goals: {
+    explorer: [{ id: 'orange', label: 'Make orange' }, { id: 'green', label: 'Make green' }, { id: 'purple', label: 'Make purple' }],
+    scientist: [{ id: 'orange', label: 'Paint: make orange' }, { id: 'green', label: 'Paint: make green' }, { id: 'purple', label: 'Paint: make purple' }, { id: 'white', label: 'Light: make white' }]
+  },
+  ryb(r, y, b) {
+    const C = [[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, .5, 0], [.16, .37, .6], [.5, 0, .5], [0, .66, .2], [.2, .09, 0]];
+    const o = [0, 0, 0];
+    for (let i = 0; i < 8; i++) {
+      const w = ((i & 1) ? r : 1 - r) * ((i & 2) ? y : 1 - y) * ((i & 4) ? b : 1 - b);
+      for (let k = 0; k < 3; k++) o[k] += w * C[i][k];
+    }
+    return `rgb(${o.map(v => Math.round(v * 255)).join(',')})`;
+  },
+  paintName(c) {
+    const keys = ['red', 'yellow', 'blue'].filter(k => c[k] > 0);
+    if (!keys.length) return '';
+    if (keys.length === 1) return keys[0];
+    if (keys.length === 3) return 'brown';
+    const [a, b] = keys, sec = { 'red+yellow': 'orange', 'yellow+blue': 'green', 'red+blue': 'purple' }[a + '+' + b];
+    const lo = Math.min(c[a], c[b]), hi = Math.max(c[a], c[b]);
+    if (lo / hi >= 0.67) return sec;
+    return (c[a] > c[b] ? a : b) + '-' + sec;
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, self = this;
+    data.made = data.made || []; data.lights = data.lights || [];
+    const made = n => { if (!data.made.includes(n)) data.made.push(n); };
+    /* ----- paint ----- */
+    const gPaint = S('g', {}, svg);
+    const BX = 510, BY = 300, c = { red: 0, yellow: 0, blue: 0 };
+    S('circle', { cx: BX, cy: BY, r: 168, fill: '#f3f4f6', stroke: '#cbd5e1', 'stroke-width': 6 }, gPaint);
+    const mix = S('circle', { cx: BX, cy: BY, r: 140, fill: '#ffffff', stroke: '#e5e7eb', 'stroke-width': 3, style: 'transition:fill .45s' }, gPaint);
+    const nameT = label(gPaint, BX, 525, 'The bowl is empty', 30, '#1f2a44');
+    const recipe = label(gPaint, BX, 560, '', 19);
+    const pots = [['red', 'rgb(255,0,0)', 130], ['yellow', 'rgb(255,255,0)', 300], ['blue', 'rgb(41,94,153)', 470]];
+    function refresh() {
+      const tot = c.red + c.yellow + c.blue, m = Math.max(c.red, c.yellow, c.blue) || 1;
+      mix.setAttribute('fill', tot ? self.ryb(c.red / m, c.yellow / m, c.blue / m) : '#ffffff');
+      const n = self.paintName(c);
+      nameT.textContent = n ? n.charAt(0).toUpperCase() + n.slice(1) : 'The bowl is empty';
+      recipe.textContent = ['red', 'yellow', 'blue'].filter(k => c[k]).map(k => `${c[k]} ${k}`).join(' + ');
+      return n;
+    }
+    function add(k) {
+      if (c.red + c.yellow + c.blue >= 12) return ctx.note('The bowl is full! Tap Wash the bowl to start again.');
+      c[k]++;
+      const n = refresh(), kinds = ['red', 'yellow', 'blue'].filter(x => c[x]).length;
+      if (kinds === 1) ctx.note(`Now there is ${k} paint in the bowl. Add a different color!`);
+      else if (n === 'brown') ctx.note(sci ? 'All three primary colors together make brown. Each paint absorbs some light, so the mix gets dark.' : 'Red, yellow and blue together make brown!');
+      else if (['orange', 'green', 'purple'].includes(n)) {
+        const [a, b] = ['red', 'yellow', 'blue'].filter(x => c[x]);
+        ctx.note(`${a.charAt(0).toUpperCase() + a.slice(1)} and ${b} make ${n}!`);
+        made(n); ctx.goal(n);
+      } else {
+        const [big, sec] = n.split('-'), other = ['red', 'yellow', 'blue'].find(x => c[x] && x !== big);
+        ctx.note(`This is ${n}. It has more ${big} in it. Add more ${other} to make ${sec}.`); made(n);
+      }
+    }
+    pots.forEach(([k, col, y]) => {
+      const g = S('g', { class: 'item', transform: `translate(130,${y})` }, gPaint);
+      S('rect', { x: -62, y: -50, width: 124, height: 110, rx: 22, fill: '#e5e7eb', stroke: '#cbd5e1', 'stroke-width': 4 }, g);
+      S('ellipse', { cx: 0, cy: -22, rx: 48, ry: 22, fill: col, stroke: '#0002', 'stroke-width': 3 }, g);
+      label(g, 0, 40, k.toUpperCase(), 19, '#1f2a44');
+      let blob = null;
+      drag(g, svg, {
+        start: p => { if (blob) blob.remove(); blob = S('circle', { cx: p.x, cy: p.y, r: 28, fill: col, stroke: '#0002', 'stroke-width': 3, 'pointer-events': 'none' }, gPaint); },
+        move: p => { blob.setAttribute('cx', p.x); blob.setAttribute('cy', p.y); },
+        end: (p, p0) => {
+          const b = blob; blob = null;
+          const tap = Math.hypot(p.x - p0.x, p.y - p0.y) < 12, inBowl = Math.hypot(p.x - BX, p.y - BY) < 175;
+          if (!tap && !inBowl) return b.remove();
+          const sx = p.x, sy = p.y; let t = 0;
+          const stop = scene.loop(dt => {
+            t = Math.min(1, t + dt / 0.35);
+            b.setAttribute('cx', sx + (BX - sx) * t); b.setAttribute('cy', sy + (BY - sy) * t - Math.sin(t * Math.PI) * 50);
+            if (t >= 1) { stop(); b.remove(); add(k); }
+          });
+        }
+      });
+    });
+    const wash = h('button', { class: 'mini', onclick: () => { c.red = c.yellow = c.blue = 0; refresh(); ctx.note('The bowl is clean. Mix a new color!'); } }, '🚿 Wash the bowl');
+    controls.append(wash);
+    if (!sci) return;
+    /* ----- light (Scientist) ----- */
+    const gLight = S('g', { style: 'isolation:isolate', display: 'none' }, svg);
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0b0b12' }, gLight);
+    const lightT = label(gLight, 400, 575, 'Drag the spotlights together', 24, '#ffffff');
+    const RL = 125;
+    const L = [['red', '#ff0000', 200, 190], ['green', '#00ff00', 600, 190], ['blue', '#0000ff', 400, 430]].map(([name, col, x, y]) => {
+      const o = { name, x, y };
+      o.el = S('circle', { cx: x, cy: y, r: RL, fill: col, class: 'item', style: 'mix-blend-mode:screen' }, gLight);
+      let off = null;
+      drag(o.el, svg, {
+        start: p => { off = { x: o.x - p.x, y: o.y - p.y }; },
+        move: p => { o.x = clamp(p.x + off.x, 60, 740); o.y = clamp(p.y + off.y, 60, 520); o.el.setAttribute('cx', o.x); o.el.setAttribute('cy', o.y); check(); }
+      });
+      return o;
+    });
+    let lastMsg = '';
+    function check() {
+      const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const rg = d(L[0], L[1]), gb = d(L[1], L[2]), rb = d(L[0], L[2]);
+      let msg = '', key = '';
+      if (rg < 130 && gb < 130 && rb < 130) { key = 'white'; msg = 'Red + green + blue light make white light!'; }
+      else if (rg < 170) { key = 'yellow'; msg = 'Red + green light make yellow light.'; }
+      else if (gb < 170) { key = 'cyan'; msg = 'Green + blue light make cyan light.'; }
+      else if (rb < 170) { key = 'magenta'; msg = 'Red + blue light make magenta light.'; }
+      if (key && key !== lastMsg) {
+        lastMsg = key; lightT.textContent = msg; ctx.note(msg);
+        if (!data.lights.includes(key)) data.lights.push(key);
+        if (key === 'white') ctx.goal('white');
+      }
+      if (!key) lastMsg = '';
+    }
+    controls.prepend(seg('Mix with', [{ v: 'paint', t: '🎨 Paint' }, { v: 'light', t: '🔦 Light' }], 'paint', v => {
+      gPaint.setAttribute('display', v === 'paint' ? '' : 'none');
+      gLight.setAttribute('display', v === 'light' ? '' : 'none');
+      wash.style.display = v === 'paint' ? '' : 'none';
+      ctx.note(v === 'light' ? 'The room is dark. Drag the red, green and blue spotlights so they overlap.' : 'Back to paint. Drag paint into the bowl.');
+    }));
+  },
+  observations(data) {
+    const em = { orange: '🟠', green: '🟢', purple: '🟣' };
+    return (data.made || []).map(n => `${em[n] || '🎨'} ${n} paint`).concat((data.lights || []).map(n => `🔦 ${n} light`));
+  },
+  result(lv, data) {
+    let s = 'Red and yellow paint made orange. Yellow and blue made green. Red and blue made purple. ';
+    if (lv === 'scientist') s += 'With light it was different. Two lights made a brighter color, and all three together made white.';
+    else s += 'From just three paints, you made three new colors!';
+    return s;
+  },
+  why: {
+    explorer: 'Red, yellow and blue are called primary colors. When two primary colors mix, they make a new color. Red and yellow make orange. Yellow and blue make green. Blue and red make purple.',
+    scientist: 'Paint and light mix in opposite ways. Paint works by absorbing light. Yellow paint absorbs blue light and bounces red and green light to your eyes. The more paints you mix, the more light is absorbed, so the mix gets darker. Light is different. Each spotlight adds more light. Red, green and blue light together make white. Screens use this trick: every pixel is made of tiny red, green and blue lights. Printers do the opposite. They mix cyan, magenta and yellow inks.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    if (!sci) {
+      const pairs = [['rgb(255,0,0)', 'rgb(255,255,0)', 'rgb(255,128,0)', 'Red + yellow = orange'], ['rgb(255,255,0)', 'rgb(41,94,153)', 'rgb(0,168,51)', 'Yellow + blue = green'], ['rgb(41,94,153)', 'rgb(255,0,0)', 'rgb(128,0,128)', 'Blue + red = purple']];
+      const a = S('circle', { cy: 270, r: 95 }, svg), b = S('circle', { cy: 270, r: 95 }, svg), m = S('circle', { cx: 400, cy: 270, r: 120 }, svg);
+      const t = label(svg, 400, 500, '', 38, '#1f2a44');
+      scene.loop((dt, time) => {
+        const i = Math.floor(time / 3.5) % 3, c = time % 3.5, p = pairs[i];
+        const k = clamp(c / 1.3, 0, 1), o = clamp((c - 1.1) / 0.5, 0, 1);
+        a.setAttribute('fill', p[0]); b.setAttribute('fill', p[1]); m.setAttribute('fill', p[2]);
+        a.setAttribute('cx', 400 - 210 * (1 - k)); b.setAttribute('cx', 400 + 210 * (1 - k));
+        m.setAttribute('opacity', o); t.textContent = o > 0.5 ? p[3] : p[3].split(' = ')[0] + ' = ?';
+      });
+      return;
+    }
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#f8fafc' }, svg);
+    S('text', { x: 110, y: 120, 'font-size': 80, 'text-anchor': 'middle', text: '💡' }, svg);
+    S('text', { x: 690, y: 130, 'font-size': 80, 'text-anchor': 'middle', text: '👁️' }, svg);
+    S('rect', { x: 250, y: 470, width: 300, height: 60, rx: 12, fill: 'rgb(255,225,0)', stroke: '#0003', 'stroke-width': 3 }, svg);
+    label(svg, 400, 560, 'Yellow paint', 22, '#1f2a44');
+    const ray = (x1, y1, x2, y2, col) => S('line', { x1, y1, x2, y2, stroke: col, 'stroke-width': 9, 'stroke-linecap': 'round', class: 'ray' }, svg);
+    ray(150, 140, 350, 468, '#ef4444'); ray(165, 130, 400, 468, '#22c55e'); ray(180, 120, 450, 468, '#3b82f6');
+    ray(350, 468, 640, 150, '#ef4444'); ray(400, 468, 660, 160, '#22c55e');
+    label(svg, 520, 450, '✖ blue is absorbed', 20, '#3b82f6', 'start');
+    label(svg, 400, 50, 'White light is red + green + blue', 24, '#1f2a44');
+    label(svg, 690, 200, 'red + green', 20); label(svg, 690, 226, '= you see yellow', 20);
+  },
+  home: {
+    explorer: 'Use paints or crayons. Mix red and yellow, then yellow and blue, then blue and red. What did you make?',
+    scientist: 'Look at a white part of a TV or tablet screen through a magnifying glass. Can you spot the tiny red, green and blue lights?'
+  },
+  quiz: {
+    explorer: [
+      { q: 'Red and yellow make…', options: ['🟠 Orange', '🟢 Green', '🟣 Purple'], answer: 0 },
+      { q: 'Which one is a primary color?', options: ['🔵 Blue', '🟢 Green', '🟠 Orange'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'Red light + green light make…', options: ['Yellow light', 'Brown light', 'Purple light'], answer: 0 },
+      { q: 'Why does mixing lots of paints look dark?', options: ['The paints absorb more and more light', 'The paints add more light', 'Paint is always dark'], answer: 0 },
+      { q: 'Which three colors of light do screens use?', options: ['Red, green and blue', 'Red, yellow and blue', 'Orange, green and purple'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.3  Light the Bulb (simple circuit) ---------- */
+Lab.register({
+  id: 'circuit', title: 'Light the Bulb', emoji: '💡', color: '#f59e0b', category: 'Electricity',
+  blurb: 'Build a circuit and find out what lets electricity through.',
+  bits: ['🔋', '🥄', '🔑', '🧦', '🎈', '⚡'],
+  question: {
+    explorer: 'A battery has energy inside. How can we use it to light up a bulb?',
+    scientist: 'Electricity can flow through some materials but not through others. What does a circuit need to work?'
+  },
+  predict: {
+    explorer: { prompt: 'Will a wooden stick let the bulb light up?', options: ['🪵 Yes, it will', '🪵 No, it will not'], answer: 1 },
+    scientist: { prompt: 'We add a second battery to the circuit. What happens to the bulb?', options: ['It gets brighter', 'It gets dimmer', 'Nothing changes'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'The wire has a gap. Drag something into the gap. Then tap the red switch!',
+    scientist: 'Close the loop with a conductor and the switch. Then try more batteries and a second bulb.'
+  },
+  goals: {
+    explorer: [{ id: 'light', label: 'Light up the bulb' }, { id: 'test4', label: 'Test 4 different things in the gap' }],
+    scientist: [{ id: 'light', label: 'Light up the bulb' }, { id: 'test4', label: 'Test 4 different materials' }, { id: 'batt', label: 'Light it with 2 or 3 batteries' }, { id: 'bulb2', label: 'Light two bulbs at once' }]
+  },
+  items: [
+    { id: 'spoon', name: 'spoon', emoji: '🥄', c: true, mat: 'metal' }, { id: 'stick', name: 'stick', emoji: '🪵', c: false, mat: 'wood' },
+    { id: 'key', name: 'key', emoji: '🔑', c: true, mat: 'metal' }, { id: 'sock', name: 'sock', emoji: '🧦', c: false, mat: 'cloth' },
+    { id: 'coin', name: 'coin', emoji: '🪙', c: true, mat: 'metal' }, { id: 'balloon', name: 'balloon', emoji: '🎈', c: false, mat: 'rubber' },
+    { id: 'clip', name: 'paper clip', emoji: '📎', c: true, mat: 'metal' }, { id: 'cup', name: 'cup', emoji: '🥤', c: false, mat: 'plastic' }
+  ],
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.tested = data.tested || {};
+    const X0 = 150, X1 = 650, Y0 = 150, Y1 = 430, GX = 400;
+    let on = false, placed = null, nB = 1, nL = 1, offset = 0, I = 0;
+    const defs = S('defs', {}, svg), f = S('filter', { id: 'circuit-glow', x: '-100%', y: '-100%', width: '300%', height: '300%' }, defs);
+    S('feGaussianBlur', { stdDeviation: 16 }, f);
+    const wire = { fill: 'none', stroke: '#475569', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    S('path', { d: `M${GX - 60},${Y1} H${X0} V${Y0} H${X1} V250`, ...wire }, svg);
+    S('path', { d: `M${X1},330 V${Y1} H${GX + 60}`, ...wire }, svg);
+    S('rect', { x: GX - 64, y: Y1 - 44, width: 128, height: 88, rx: 16, fill: '#fffbeb', stroke: '#f59e0b', 'stroke-width': 3, 'stroke-dasharray': '9 8' }, svg);
+    label(svg, GX, Y1 - 54, 'Gap', 17);
+    S('circle', { cx: GX - 60, cy: Y1, r: 9, fill: '#f59e0b' }, svg); S('circle', { cx: GX + 60, cy: Y1, r: 9, fill: '#f59e0b' }, svg);
+    /* moving dots = electricity */
+    const track = S('path', { d: `M${X0},${Y1} H${X1} V${Y0} H${X0} Z`, fill: 'none', stroke: 'none' }, svg);
+    const len = track.getTotalLength(), gDots = S('g', { opacity: 0, style: 'transition:opacity .3s', 'pointer-events': 'none' }, svg);
+    const dots = Array.from({ length: 30 }, () => S('circle', { r: 6, fill: '#fde047', stroke: '#b45309', 'stroke-width': 2 }, gDots));
+    /* battery */
+    const gBat = S('g', {}, svg);
+    function drawBat() {
+      gBat.replaceChildren();
+      const hh = 38, top = 290 - nB * hh / 2;
+      for (let i = 0; i < nB; i++) {
+        S('rect', { x: X0 - 26, y: top + i * hh + 6, width: 52, height: hh - 7, rx: 6, fill: '#16a34a', stroke: '#14532d', 'stroke-width': 3 }, gBat);
+        S('rect', { x: X0 - 10, y: top + i * hh, width: 20, height: 8, rx: 2, fill: '#d4a017' }, gBat);
+      }
+      label(gBat, X0 - 44, top + 16, '+', 30, '#e11d48'); label(gBat, X0 - 44, top + nB * hh + 4, '−', 30, '#2563eb');
+      label(gBat, X0 - 44, 372, nB > 1 ? 'Batteries' : 'Battery', 16, '#5b6785');
+    }
+    /* bulbs */
+    const gBulb = S('g', {}, svg); let bulbs = [];
+    function drawBulbs() {
+      gBulb.replaceChildren();
+      bulbs = (nL === 1 ? [400] : [290, 510]).map(x => {
+        const glow = S('circle', { cx: x, cy: 95, r: 62, fill: '#fde047', filter: 'url(#circuit-glow)', opacity: 0 }, gBulb);
+        S('rect', { x: x - 17, y: 128, width: 34, height: 30, rx: 5, fill: '#94a3b8', stroke: '#475569', 'stroke-width': 3 }, gBulb);
+        S('circle', { cx: x, cy: 95, r: 40, fill: '#f1f5f9', stroke: '#64748b', 'stroke-width': 4 }, gBulb);
+        const lit = S('circle', { cx: x, cy: 95, r: 38, fill: '#fde047', opacity: 0 }, gBulb);
+        S('path', { d: `M${x - 10},128 L${x - 12},100 L${x - 4},88 L${x + 4},100 L${x + 12},88 L${x + 10},128`, fill: 'none', stroke: '#92400e', 'stroke-width': 3, 'stroke-linejoin': 'round' }, gBulb);
+        return { glow, lit };
+      });
+    }
+    /* switch */
+    const gSw = S('g', { class: 'item' }, svg);
+    S('circle', { cx: X1, cy: 250, r: 9, fill: '#1f2a44' }, gSw); S('circle', { cx: X1, cy: 330, r: 9, fill: '#1f2a44' }, gSw);
+    const lever = S('line', { x1: X1, y1: 330, x2: X1, y2: 250, stroke: '#e11d48', 'stroke-width': 11, 'stroke-linecap': 'round', style: 'transition:transform .2s;transform-box:view-box;transform-origin:650px 330px' }, gSw);
+    S('rect', { x: X1 - 85, y: 225, width: 150, height: 130, fill: 'transparent' }, gSw);
+    const swT = label(svg, X1 + 28, 296, 'Switch', 17, '#5b6785', 'start');
+    gSw.addEventListener('pointerdown', e => { e.preventDefault(); on = !on; update('switch'); });
+    const readout = sci ? label(svg, 400, 290, '', 22, '#1f2a44') : null;
+    /* things to test */
+    S('rect', { x: 30, y: 580, width: 740, height: 10, rx: 5, fill: '#c89b6a' }, svg);
+    const gItems = S('g', {}, svg);
+    const items = this.items.map((def, i) => {
+      const it = { ...def, hx: 75 + i * 93, hy: 545, mode: 'shelf' };
+      it.x = it.hx; it.y = it.hy; it.g = emojiItem(gItems, def.emoji, 50);
+      drag(it.g, svg, {
+        start: () => { it.mode = 'drag'; gItems.appendChild(it.g); if (placed === it) { placed = null; update('lift'); } },
+        move: p => { it.x = clamp(p.x, 30, 770); it.y = clamp(p.y, 30, 570); },
+        end: () => {
+          if (Math.abs(it.x - GX) < 95 && Math.abs(it.y - Y1) < 80) {
+            if (placed && placed !== it) placed.mode = 'return';
+            placed = it; it.mode = 'placed'; it.x = GX; it.y = Y1; update('place');
+          } else it.mode = 'return';
+        }
+      });
+      return it;
+    });
+    function update(why) {
+      lever.style.transform = on ? 'rotate(0deg)' : 'rotate(-38deg)';
+      swT.textContent = on ? 'Switch: closed' : 'Switch: open';
+      const closed = on && placed && placed.c;
+      I = closed ? 1.5 * nB / (10 * nL) : 0;
+      const b = closed ? 0.3 + 0.7 * (I / 0.45) : 0;
+      bulbs.forEach(x => { x.lit.setAttribute('opacity', b); x.glow.setAttribute('opacity', b * 0.9); });
+      gDots.setAttribute('opacity', closed ? 1 : 0);
+      if (readout) readout.textContent = `Voltage: ${(1.5 * nB).toFixed(1)} V     Current: ${I.toFixed(2)} A`;
+      if (on && placed) {
+        data.tested[placed.id] = { ok: placed.c, name: placed.name, emoji: placed.emoji };
+        if (Object.keys(data.tested).length >= 4) ctx.goal('test4');
+      }
+      if (closed) { ctx.goal('light'); if (nB >= 2) { ctx.goal('batt'); data.batt = true; } if (nL === 2) { ctx.goal('bulb2'); data.bulb2 = true; } }
+      if (why === 'lift') return;
+      if (why === 'batt' && closed) return ctx.note(nB === 1 ? 'One battery: a small push. The bulb is dimmer.' : `${nB} batteries push harder. More current flows, so the bulb is brighter!`);
+      if (why === 'bulbs' && closed) return ctx.note(nL === 2 ? 'Two bulbs in a row share the push from the battery. Each bulb is dimmer.' : 'One bulb gets all the push. It is brighter again.');
+      if (why === 'batt' || why === 'bulbs') return;
+      if (!on && !placed) ctx.note('The switch is open and there is a gap. Nothing can flow.');
+      else if (!on) ctx.note(`The ${placed.name} is in the gap. Now tap the red switch to close it!`);
+      else if (!placed) ctx.note('The switch is closed, but there is still a gap. Drag something into the gap!');
+      else if (placed.c) ctx.note(sci ? `The bulb lights up! The ${placed.name} is made of metal. Metal is a conductor, so electrons can flow all the way around the loop.` : `The bulb lights up! Electricity can go through the ${placed.name}.`);
+      else ctx.note(sci ? `No light. The ${placed.name} is made of ${placed.mat}. That is an insulator, so the electrons cannot get across the gap.` : `No light! Electricity cannot go through the ${placed.name}.`);
+    }
+    scene.loop(dt => {
+      for (const it of items) {
+        if (it.mode === 'return') {
+          const k = Math.min(1, dt * 10);
+          it.x += (it.hx - it.x) * k; it.y += (it.hy - it.y) * k;
+          if (Math.abs(it.x - it.hx) + Math.abs(it.y - it.hy) < 1) { it.x = it.hx; it.y = it.hy; it.mode = 'shelf'; }
+        }
+        it.g.setAttribute('transform', `translate(${it.x.toFixed(1)},${it.y.toFixed(1)})`);
+      }
+      if (I > 0) {
+        offset = (offset + (110 + I * 900) * dt) % len;
+        dots.forEach((d, i) => { const p = track.getPointAtLength((i * len / dots.length + offset) % len); d.setAttribute('cx', p.x); d.setAttribute('cy', p.y); });
+      }
+    });
+    if (sci) {
+      controls.append(
+        seg('🔋 Batteries', [1, 2, 3].map(v => ({ v, t: String(v) })), 1, v => { nB = v; drawBat(); update('batt'); }),
+        seg('💡 Bulbs', [1, 2].map(v => ({ v, t: String(v) })), 1, v => { nL = v; drawBulbs(); update('bulbs'); }));
+    }
+    drawBat(); drawBulbs(); update('lift');
+  },
+  observations(data) {
+    return Object.values(data.tested || {}).map(t => `${t.emoji} ${t.ok ? 'bulb ON' : 'bulb off'}`);
+  },
+  result(lv, data) {
+    const t = Object.values(data.tested || {});
+    const yes = t.filter(x => x.ok).map(x => 'the ' + x.name), no = t.filter(x => !x.ok).map(x => 'the ' + x.name);
+    let s = '';
+    if (yes.length) s += `The bulb lit up with ${listWords(yes)}. `;
+    if (no.length) s += `It stayed dark with ${listWords(no)}. `;
+    s += 'The bulb only worked when the loop had no gaps. ';
+    if (lv === 'scientist') s += 'More batteries made the bulb brighter. Two bulbs in a row were each dimmer.';
+    return s;
+  },
+  why: {
+    explorer: 'Electricity needs a full loop to travel around, like a race track. This loop is called a circuit. If there is a gap, the electricity stops and the bulb goes off. Metal things let electricity pass. Wood, cloth, rubber and plastic block it.',
+    scientist: 'A circuit is a complete loop. The battery pushes tiny particles called electrons around it. Metals are conductors: some of their electrons are free to move. Plastic, wood and rubber are insulators: their electrons are held in place. More batteries give a bigger push, called voltage. Then more current flows and the bulb glows brighter. Two bulbs in a row share the push, so each one is dimmer.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    if (!sci) {
+      const d = 'M200,200 H600 V440 H200 Z';
+      S('path', { d, fill: 'none', stroke: '#475569', 'stroke-width': 10, 'stroke-linejoin': 'round' }, svg);
+      const track = S('path', { d, fill: 'none', stroke: 'none' }, svg), len = track.getTotalLength();
+      const hole = S('rect', { x: 350, y: 425, width: 100, height: 30, fill: '#fff' }, svg);
+      const glow = S('circle', { cx: 400, cy: 170, r: 80, fill: '#fde047', opacity: 0 }, svg);
+      S('text', { x: 400, y: 215, 'font-size': 100, 'text-anchor': 'middle', text: '💡' }, svg);
+      S('text', { x: 200, y: 350, 'font-size': 80, 'text-anchor': 'middle', text: '🔋' }, svg);
+      const dots = Array.from({ length: 18 }, () => S('circle', { r: 8, fill: '#f59e0b' }, svg));
+      const t = label(svg, 400, 540, '', 34, '#1f2a44');
+      let off = 0;
+      scene.loop((dt, time) => {
+        const closed = (time % 6) < 3.5;
+        hole.setAttribute('opacity', closed ? 0 : 1); glow.setAttribute('opacity', closed ? 0.75 : 0);
+        t.textContent = closed ? 'Full loop: the bulb is ON' : 'A gap: the bulb is OFF';
+        if (closed) off = (off + 220 * dt) % len;
+        dots.forEach((c, i) => {
+          const p = track.getPointAtLength((i * len / dots.length + off) % len);
+          c.setAttribute('cx', p.x); c.setAttribute('cy', p.y);
+          c.setAttribute('opacity', !closed && p.y > 430 && p.x > 345 && p.x < 455 ? 0 : 1);
+        });
+      });
+      return;
+    }
+    label(svg, 400, 70, 'Metal (conductor): electrons flow', 26, '#1f2a44');
+    S('rect', { x: 150, y: 100, width: 500, height: 110, rx: 16, fill: '#cbd5e1', stroke: '#64748b', 'stroke-width': 4 }, svg);
+    label(svg, 400, 350, 'Plastic (insulator): electrons are stuck', 26, '#1f2a44');
+    S('rect', { x: 150, y: 380, width: 500, height: 110, rx: 16, fill: '#fbcfe8', stroke: '#db2777', 'stroke-width': 4 }, svg);
+    const A = [], B = [];
+    for (let i = 0; i < 14; i++) {
+      const y = 125 + (i % 3) * 30, y2 = 405 + (i % 3) * 30, x = 175 + i * 34;
+      A.push({ el: S('circle', { r: 9, cy: y, fill: '#f59e0b', stroke: '#92400e', 'stroke-width': 2 }, svg), x });
+      B.push({ el: S('circle', { r: 9, cy: y2, fill: '#f59e0b', stroke: '#92400e', 'stroke-width': 2 }, svg), x, y: y2, ph: i * 1.7 });
+    }
+    scene.loop((dt, t) => {
+      A.forEach(a => { a.x += 120 * dt; if (a.x > 635) a.x -= 470; a.el.setAttribute('cx', a.x); });
+      B.forEach(b => { b.el.setAttribute('cx', b.x + Math.sin(t * 9 + b.ph) * 3); b.el.setAttribute('cy', b.y + Math.cos(t * 8 + b.ph) * 3); });
+    });
+  },
+  home: 'Ask a grown-up to open a flashlight with you. Find the battery, the bulb and the switch. Can you trace the loop with your finger?',
+  safety: 'Never experiment with wall sockets or plugs. They are very dangerous!',
+  quiz: {
+    explorer: [
+      { q: 'What does electricity need to light the bulb?', options: ['A full loop with no gaps', 'A big gap', 'A sock'], answer: 0 },
+      { q: 'Which one lets electricity through?', options: ['🥄 The metal spoon', '🧦 The sock', '🎈 The balloon'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'A material that lets electricity flow is called…', options: ['a conductor', 'an insulator', 'a battery'], answer: 0 },
+      { q: 'You add more batteries. What happens to the bulb?', options: ['It gets brighter', 'It gets dimmer', 'It gets colder'], answer: 0 },
+      { q: 'Why are wires covered in plastic?', options: ['Plastic is an insulator, so it keeps the electricity inside', 'Plastic makes electricity faster', 'Plastic makes the wire heavier'], answer: 0 }
+    ]
+  }
+});
+
+/* ===================== 6. Start ===================== */
+Store.load();
+Voice.init();
+App.start();
+/* Offline support (only works when the page is served from a web address). */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
