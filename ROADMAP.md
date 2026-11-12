@@ -6,15 +6,9 @@ Each group is written, tested and published as one update. Tick a group when it 
 
 - [x] **Pilot** (3): Sink or Float?, Color Mixing, Light the Bulb
 - [x] **Group 1** (2): Magnets, Volcano
+- [x] **Group 2** (5): Shadows, Rainbow Prism, Mirror Bounce, Ice Water Steam, Disappearing Act (dissolving)
 
 ## Planned groups
-
-- [ ] **Group 2** (5 experiments) — light and water
-  1. **Shadows** — move a lamp around an object; the shadow grows, shrinks and turns. Scientist: distance and angle, why shadows are long in the evening.
-  2. **Rainbow Prism** — shine white light through a prism to split it into colors. Scientist: rotate the prism, refraction, why red bends least.
-  3. **Mirror Reflection** — bounce a light beam off mirrors to hit a target. Scientist: angle in equals angle out.
-  4. **States of Water** — heat and cool water: ice, liquid, steam. Scientist: thermometer, 0 °C and 100 °C, what the particles do.
-  5. **Dissolving** — stir sugar, salt, sand and oil into water. Scientist: warm water dissolves faster, saturation.
 
 - [ ] **Group 3** (5 experiments) — forces and motion
   1. **Ramp Race** — roll a car down a ramp; change the height and the surface. Scientist: measure distance, friction.

@@ -321,6 +321,7 @@ const Voice = {
   clean(t) {
     return t.replace(/\p{Extended_Pictographic}|️|‍/gu, '')
       .replace(/g\/cm³/g, 'grams per cubic centimeter')
+      .replace(/ ?°C/g, ' degrees Celsius').replace(/°/g, ' degrees').replace(/(\d) s\b/g, '$1 seconds')
       .replace(/(\d) ml\b/g, '$1 milliliters').replace(/(\d) cm\b/g, '$1 centimeters').replace(/→/g, ' makes ')
       .replace(/(\d) V\b/g, '$1 volts').replace(/(\d) A\b/g, '$1 amps')
       .replace(/÷/g, ' divided by ').replace(/=/g, ' equals ')
@@ -1541,6 +1542,625 @@ Lab.register({
       { q: 'What kind of liquid is vinegar?', options: ['An acid', 'A base', 'A metal'], answer: 0 },
       { q: 'Which gas is made in this reaction?', options: ['Carbon dioxide', 'Oxygen', 'Helium'], answer: 0 },
       { q: 'Why does the reaction stop?', options: ['One ingredient runs out', 'The foam gets too cold', 'The gas turns back into vinegar'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.6  Shadows ---------- */
+Lab.register({
+  id: 'shadows', title: 'Shadows', emoji: '🔦', color: '#6366f1', category: 'Light and color',
+  blurb: 'Move a light and watch the shadow change.',
+  bits: ['🧸', '☀️', '🌳', '💡', '⛱️', '🕶️'],
+  question: {
+    explorer: 'Your shadow is sometimes long and sometimes short. What makes a shadow change?',
+    scientist: 'A shadow can be longer than you, shorter than you, in front of you or behind you. What decides its length and direction?'
+  },
+  predict: {
+    explorer: { prompt: 'The light is low, near the ground. Will the shadow be long or short?', options: ['A long shadow', 'A short shadow'], answer: 0 },
+    scientist: { prompt: 'At noon the Sun is high in the sky. How long is your shadow then?', options: ['Very short', 'Very long', 'The same as in the evening'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Drag the light bulb up, down and all around. Watch the shadow of the teddy bear!',
+    scientist: 'Drag the lamp to change its height and its side. Watch how the length and direction of the shadow change.'
+  },
+  goals: {
+    explorer: [{ id: 'long', label: 'Make a long shadow' }, { id: 'short', label: 'Make a short shadow' }, { id: 'flip', label: 'Move the light to the other side' }],
+    scientist: [{ id: 'long', label: 'Make a shadow longer than 150 cm' }, { id: 'short', label: 'Make a shadow shorter than 40 cm' }, { id: 'flip', label: 'Make the shadow point the other way' }]
+  },
+  tip(lx, ly, ox, ty, G) { return ly >= ty - 6 ? ox + (lx < ox ? 3000 : -3000) : ox + (ox - lx) * (G - ty) / (ty - ly); },
+  build(ctx) {
+    const { svg, sci, data } = ctx, G = 470, OX = 400, TY = 330, self = this;
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#1e1b4b' }, svg);
+    S('rect', { x: 0, y: G, width: 800, height: 130, fill: '#5b21b6' }, svg);
+    const shadow = S('polygon', { fill: '#0b0720', opacity: .85 }, svg);
+    const ray = S('line', { stroke: '#fde68a', 'stroke-width': 3, 'stroke-dasharray': '10 8', opacity: .8 }, svg);
+    S('text', { x: OX, y: 400, 'font-size': 140, 'text-anchor': 'middle', dy: '.35em', text: '🧸' }, svg);
+    const glow = S('circle', { r: 75, fill: '#fde68a', opacity: .25, 'pointer-events': 'none' }, svg);
+    const lamp = emojiItem(svg, '💡', 70);
+    const read = sci ? label(svg, 400, 40, '', 22, '#e0e7ff') : null;
+    const L = { x: 170, y: 210 }; let state = '', side = -1;
+    function update() {
+      const tip = self.tip(L.x, L.y, OX, TY, G), tc = clamp(tip, -300, 1100), len = Math.abs(tip - OX);
+      shadow.setAttribute('points', `${OX - 45},${G + 4} ${OX + 45},${G + 4} ${tc + 34},${G + 54} ${tc - 34},${G + 54}`);
+      ray.setAttribute('x1', L.x); ray.setAttribute('y1', L.y); ray.setAttribute('x2', tc); ray.setAttribute('y2', G);
+      lamp.setAttribute('transform', `translate(${L.x},${L.y})`); glow.setAttribute('cx', L.x); glow.setAttribute('cy', L.y);
+      const cm = Math.round(len / 2), hcm = Math.round((G - L.y) / 2);
+      if (read) read.textContent = `Lamp height: ${hcm} cm     Shadow: ${cm > 400 ? 'more than 400' : cm} cm`;
+      const st = len > 300 ? 'long' : len < 80 ? 'short' : 'mid', sd = L.x < OX ? -1 : 1;
+      if (sd !== side) {
+        side = sd;
+        if (state) { data.flip = true; ctx.goal('flip'); ctx.note('The shadow jumped to the other side! A shadow always points away from the light.'); state = st; return; }
+      }
+      if (st !== state) {
+        state = st;
+        if (st === 'long') { data.long = true; ctx.goal('long'); ctx.note(sci ? `The lamp is low, only ${hcm} cm high. The light skims over the teddy bear, so the shadow is long.` : 'The light is low. The shadow is long!'); }
+        if (st === 'short') { data.short = true; ctx.goal('short'); ctx.note(sci ? `The lamp is high, at ${hcm} cm. The light comes almost straight down, so the shadow is only ${cm} cm long.` : 'The light is high up. The shadow is short!'); }
+      }
+    }
+    drag(lamp, svg, { move: p => {
+      L.x = clamp(p.x, 40, 760); L.y = clamp(p.y, 60, 440);
+      if (Math.abs(L.x - OX) < 75) L.x = OX + (L.x < OX ? -75 : 75);
+      update();
+    } });
+    update(); state = state || 'mid';
+  },
+  observations(data) {
+    const o = [];
+    if (data.long) o.push('💡 low light → long shadow');
+    if (data.short) o.push('💡 high light → short shadow');
+    if (data.flip) o.push('↔️ shadow points away from the light');
+    return o;
+  },
+  result(lv) {
+    return 'When the light was low, the shadow was long. When the light was high, the shadow was short. When the light moved to the other side, the shadow moved too. ' +
+      (lv === 'scientist' ? 'The shadow always pointed directly away from the lamp.' : 'The shadow always hides behind the teddy bear, away from the light.');
+  },
+  why: {
+    explorer: 'Light travels in straight lines. The teddy bear blocks the light. The dark place behind it, where the light cannot go, is the shadow. A low light makes a long shadow. A high light makes a short shadow.',
+    scientist: 'Light travels in straight lines and cannot bend around the teddy bear. The space the light cannot reach is the shadow. A low lamp sends light at a shallow angle, so the shadow stretches far. A high lamp sends light steeply down, so the shadow is short. The Sun works the same way. It is low in the morning and evening, so shadows are long. At noon it is high, so shadows are short. A sundial uses the moving shadow of a stick to tell the time.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    const G = 470, self = this;
+    S('rect', { x: 0, y: 0, width: 800, height: G, fill: '#bae6fd' }, svg); S('rect', { x: 0, y: G, width: 800, height: 130, fill: '#86efac' }, svg);
+    const shadow = S('polygon', { fill: '#14532d', opacity: .6 }, svg);
+    S('text', { x: 400, y: 400, 'font-size': 140, 'text-anchor': 'middle', dy: '.35em', text: '🌳' }, svg);
+    const sun = S('text', { 'font-size': 80, 'text-anchor': 'middle', dy: '.35em', text: '☀️' }, svg);
+    const t1 = label(svg, 400, 560, '', 30, '#14532d');
+    scene.loop((dt, t) => {
+      const a = (12 + ((t % 8) / 8) * 156) * Math.PI / 180, x = 400 - 340 * Math.cos(a), y = G - 340 * Math.sin(a);
+      sun.setAttribute('x', x); sun.setAttribute('y', y);
+      const tc = clamp(self.tip(x, y, 400, 330, G), -300, 1100);
+      shadow.setAttribute('points', `355,${G + 4} 445,${G + 4} ${tc + 34},${G + 50} ${tc - 34},${G + 50}`);
+      const hi = Math.sin(a) > 0.85;
+      t1.textContent = hi ? (sci ? 'Noon: high Sun, short shadow' : 'High Sun: short shadow') : (sci ? (x < 400 ? 'Morning' : 'Evening') + ': low Sun, long shadow' : 'Low Sun: long shadow');
+    });
+  },
+  home: 'In a dark room, shine a flashlight on a toy. Move the light up, down and around. On a sunny day, look at your own shadow in the morning and again at lunch time.',
+  safety: 'Never look straight at the Sun.',
+  quiz: {
+    explorer: [
+      { q: 'What makes a shadow?', options: ['Something blocks the light', 'The wind blows', 'It gets cold'], answer: 0 },
+      { q: 'The light is very low. What is the shadow like?', options: ['Long', 'Short', 'Pink'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'Why do shadows form?', options: ['Light travels in straight lines and gets blocked', 'Light bends around objects', 'Objects give off darkness'], answer: 0 },
+      { q: 'When is your shadow the shortest?', options: ['At noon', 'In the early morning', 'In the evening'], answer: 0 },
+      { q: 'The Sun is in front of you. Where is your shadow?', options: ['Behind you', 'In front of you', 'Above you'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.7  Rainbow Prism ---------- */
+Lab.register({
+  id: 'prism', title: 'Rainbow Prism', emoji: '🌈', color: '#ec4899', category: 'Light and color',
+  blurb: 'Split white light into a rainbow.',
+  bits: ['🔺', '☀️', '🌧️', '🔦', '💎', '✨'],
+  question: {
+    explorer: 'Sunlight looks white. So where do the colors of a rainbow come from?',
+    scientist: 'A glass prism turns a beam of white light into a band of colors. What is hiding inside white light?'
+  },
+  predict: {
+    explorer: { prompt: 'White light goes into a glass prism. What comes out?', options: ['Many colors', 'Only white light', 'No light at all'], answer: 0 },
+    scientist: { prompt: 'Which color of light bends the most in a prism?', options: ['Violet', 'Red', 'They all bend the same'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Drag the glass prism up into the beam of light. Look at the screen!',
+    scientist: 'Drag the prism into the beam. Then change the bending power and try red light instead of white.'
+  },
+  goals: {
+    explorer: [{ id: 'rainbow', label: 'Make a rainbow on the screen' }, { id: 'white', label: 'Take the prism out again' }],
+    scientist: [{ id: 'rainbow', label: 'Split white light into a spectrum' }, { id: 'wide', label: 'Make the spectrum as wide as you can' }, { id: 'red', label: 'Send red light through the prism' }]
+  },
+  colors: [['red', '#ef4444'], ['orange', '#f97316'], ['yellow', '#facc15'], ['green', '#22c55e'], ['blue', '#3b82f6'], ['indigo', '#6366f1'], ['violet', '#a855f7']],
+  build(ctx) {
+    const { svg, sci, data, controls } = ctx, self = this;
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0f172a' }, svg);
+    S('rect', { x: 735, y: 60, width: 24, height: 480, rx: 6, fill: '#e2e8f0' }, svg); label(svg, 747, 45, 'Screen', 16, '#cbd5e1');
+    S('rect', { x: 15, y: 272, width: 70, height: 56, rx: 12, fill: '#facc15', stroke: '#a16207', 'stroke-width': 4 }, svg);
+    S('polygon', { points: '85,278 105,264 105,336 85,322', fill: '#fde68a', stroke: '#a16207', 'stroke-width': 4 }, svg);
+    const gBeam = S('g', { 'pointer-events': 'none' }, svg);
+    const prism = S('g', { class: 'item' }, svg);
+    S('polygon', { points: '0,-60 60,45 -60,45', fill: 'rgba(186,230,253,.35)', stroke: '#e0f2fe', 'stroke-width': 5, 'stroke-linejoin': 'round' }, prism);
+    const P = { x: 400, y: 480 }; let mode = 'white', spread = 1, was = false, done = false, last = '';
+    function update(say) {
+      gBeam.replaceChildren();
+      prism.setAttribute('transform', `translate(${P.x},${P.y})`);
+      const yr = 300 - P.y, on = yr > -45 && yr < 35, col = mode === 'white' ? '#ffffff' : '#ef4444';
+      const line = (x1, y1, x2, y2, c, w) => S('line', { x1, y1, x2, y2, stroke: c, 'stroke-width': w, 'stroke-linecap': 'round', opacity: .92 }, gBeam);
+      if (!on) {
+        line(105, 300, 735, 300, col, 10); S('circle', { cx: 747, cy: 300, r: 13, fill: col, stroke: '#94a3b8', 'stroke-width': 2 }, gBeam);
+      } else {
+        const hw = (yr + 60) / 105 * 60, ex = P.x + hw;
+        line(105, 300, P.x - hw, 300, col, 10);
+        (mode === 'white' ? self.colors : self.colors.slice(0, 1)).forEach(([name, c], i) => {
+          const ys = 300 + (735 - ex) * (0.16 + i * 0.036 * spread);
+          line(P.x - hw, 300, ex, 300 + i, c, 5); line(ex, 300 + i, 735, ys, c, 7);
+          S('rect', { x: 735, y: ys - 8, width: 24, height: 16, fill: c }, gBeam);
+          if (sci && mode === 'white' && (i === 0 || i === 6)) label(gBeam, 722, ys + 6, i ? 'violet bends most' : 'red bends least', 15, c, 'end');
+        });
+      }
+      const key = (on ? 'on' : 'off') + mode + (spread >= 1.45 ? 'w' : '');
+      if (!say || key === last) return; last = key;
+      if (on && mode === 'white') {
+        done = true; data.rainbow = true; ctx.goal('rainbow');
+        if (spread >= 1.45) { data.wide = true; ctx.goal('wide'); ctx.note('This glass bends light strongly. The colors spread out into a wide spectrum.'); }
+        else ctx.note(sci ? 'The prism bends the light and splits it into a spectrum. Red bends the least. Violet bends the most.' : 'A rainbow! The white light split into red, orange, yellow, green, blue, indigo and violet.');
+      } else if (on) { data.red = true; ctx.goal('red'); ctx.note('The red light bends, but it does not split. It is only one color.'); }
+      else if (done) { if (mode === 'white') ctx.goal('white'); ctx.note(sci ? 'Without the prism the beam goes straight and stays one spot.' : 'No prism, no rainbow. The light is white again and goes straight.'); }
+    }
+    drag(prism, svg, { move: p => { P.x = clamp(p.x, 250, 560); P.y = clamp(p.y, 130, 500); update(true); } });
+    if (sci) {
+      const rng = h('input', { type: 'range', min: 60, max: 150, value: 100, 'aria-label': 'Bending power', oninput: () => { spread = rng.value / 100; update(true); } });
+      controls.append(seg('Light', [{ v: 'white', t: '⚪ White' }, { v: 'red', t: '🔴 Red' }], 'white', v => { mode = v; update(true); }), h('label', null, '🔺 Bending power', rng));
+    }
+    update(false);
+  },
+  observations(data) {
+    const o = [];
+    if (data.rainbow) o.push('⚪ white light → 🌈 seven colors');
+    if (data.wide) o.push('🔺 stronger bending → wider spectrum');
+    if (data.red) o.push('🔴 red light → stays red');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The white beam went in and a spectrum of seven colors came out. Red was bent the least and violet the most. Red light on its own was bent but did not split.'
+      : 'White light went into the prism. Seven colors came out: red, orange, yellow, green, blue, indigo and violet. Without the prism, the light stayed white.';
+  },
+  why: {
+    explorer: 'White light is not really white. It is all the colors mixed together! The glass prism bends the light. Each color bends a little differently, so the colors spread out. Raindrops do the same thing to sunlight. That is how a rainbow is made.',
+    scientist: 'White light is a mix of all the colors. When light goes from air into glass it slows down and bends. This is called refraction. Violet light bends the most and red light bends the least, so the colors fan out into a spectrum. Red light alone does not split, because it is only one color. In a rainbow, millions of raindrops bend and reflect sunlight in the same way.'
+  },
+  whyAnim({ svg, scene }) {
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#bae6fd' }, svg); S('rect', { x: 0, y: 520, width: 800, height: 80, fill: '#86efac' }, svg);
+    const arcs = this.colors.map(([n, c], i) => { const r = 300 - i * 18; return S('path', { d: `M${400 - r},520 A${r},${r} 0 0 1 ${400 + r},520`, fill: 'none', stroke: c, 'stroke-width': 18 }, svg); });
+    S('text', { x: 110, y: 110, 'font-size': 90, 'text-anchor': 'middle', text: '☀️' }, svg); S('text', { x: 660, y: 120, 'font-size': 90, 'text-anchor': 'middle', text: '🌧️' }, svg);
+    label(svg, 400, 572, 'Sunlight + raindrops = rainbow', 28, '#14532d');
+    scene.loop((dt, t) => { const c = t % 6; arcs.forEach((a, i) => a.setAttribute('opacity', clamp(c - i * 0.45, 0, 1) * (c > 5.4 ? (6 - c) / 0.6 : 1))); });
+  },
+  home: 'On a sunny day, stand with your back to the Sun and spray water into the air with a hose or spray bottle. Look for a rainbow in the mist! A glass of water on a sunny windowsill can make one too.',
+  quiz: {
+    explorer: [
+      { q: 'What is white light made of?', options: ['All the colors mixed together', 'Only white', 'Water'], answer: 0 },
+      { q: 'What splits sunlight to make a rainbow in the sky?', options: ['Raindrops', 'Clouds of smoke', 'Birds'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is the bending of light called?', options: ['Refraction', 'Reflection', 'Evaporation'], answer: 0 },
+      { q: 'Which color bends the least in a prism?', options: ['Red', 'Violet', 'Green'], answer: 0 },
+      { q: 'Why does red light not split into a rainbow?', options: ['It is only one color', 'It is too bright', 'Glass blocks red light'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.8  Mirror Reflection ---------- */
+Lab.register({
+  id: 'mirror', title: 'Mirror Bounce', emoji: '🪞', color: '#14b8a6', category: 'Light and color',
+  blurb: 'Bounce a beam of light off a mirror to hit the stars.',
+  bits: ['⭐', '🔦', '✨', '🎯', '💡', '🌟'],
+  question: {
+    explorer: 'What does light do when it hits a mirror? Can we send it where we want?',
+    scientist: 'Light bounces off a mirror in a very exact way. Can you find the rule that tells you where it will go?'
+  },
+  predict: {
+    explorer: { prompt: 'A beam of light hits a mirror. What does the light do?', options: ['It bounces off', 'It goes through the mirror', 'It stops and disappears'], answer: 0 },
+    scientist: { prompt: 'A beam hits a mirror at an angle of 30°. At what angle does it bounce off?', options: ['30°', '60°', '90°'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Turn the mirror with your finger. Make the light beam hit all three stars!',
+    scientist: 'Turn the mirror to hit the stars. Watch the two angles at the top. What do you notice?'
+  },
+  goals: {
+    explorer: [{ id: 'first', label: 'Hit your first star' }, { id: 'stars', label: 'Hit all 3 stars' }],
+    scientist: [{ id: 'stars', label: 'Hit all 3 stars' }, { id: 'a45', label: 'Set the angle in to exactly 45°' }]
+  },
+  build(ctx) {
+    const { svg, sci, data } = ctx, C = { x: 450, y: 300 };
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0f172a' }, svg);
+    S('rect', { x: 15, y: 274, width: 64, height: 52, rx: 10, fill: '#f87171', stroke: '#7f1d1d', 'stroke-width': 4 }, svg);
+    const normal = sci ? S('line', { stroke: '#94a3b8', 'stroke-width': 3, 'stroke-dasharray': '8 8' }, svg) : null;
+    const b1 = S('line', { x1: 79, y1: 300, stroke: '#fde047', 'stroke-width': 8, 'stroke-linecap': 'round' }, svg);
+    const b2 = S('line', { stroke: '#fde047', 'stroke-width': 8, 'stroke-linecap': 'round' }, svg);
+    const stars = [[250, 95], [650, 110], [300, 515]].map(([x, y]) => ({ x, y, hit: false, el: S('text', { x, y, 'font-size': 56, 'text-anchor': 'middle', dy: '.35em', opacity: .3, text: '⭐' }, svg) }));
+    const mir = S('g', { class: 'item' }, svg);
+    S('rect', { x: -120, y: -45, width: 240, height: 90, fill: 'transparent' }, mir);
+    S('rect', { x: -95, y: -8, width: 190, height: 16, rx: 5, fill: '#e2e8f0', stroke: '#14b8a6', 'stroke-width': 4 }, mir);
+    S('circle', { cx: -95, r: 17, fill: '#14b8a6' }, mir); S('circle', { cx: 95, r: 17, fill: '#14b8a6' }, mir);
+    const read = sci ? label(svg, 400, 40, '', 22, '#e2e8f0') : null;
+    let th = Math.PI / 2, said45 = false;
+    function update(say) {
+      mir.setAttribute('transform', `translate(${C.x},${C.y}) rotate(${(th * 180 / Math.PI).toFixed(1)})`);
+      const s = Math.sin(th), miss = Math.abs(s) < 0.12;
+      b1.setAttribute('x2', miss ? 800 : C.x); b1.setAttribute('y2', 300);
+      const rx = Math.cos(2 * th), ry = Math.sin(2 * th);
+      b2.setAttribute('x1', C.x); b2.setAttribute('y1', C.y); b2.setAttribute('x2', C.x + rx * 900); b2.setAttribute('y2', C.y + ry * 900);
+      b2.setAttribute('opacity', miss ? 0 : 1);
+      const ang = Math.round(Math.acos(Math.min(1, Math.abs(s))) * 180 / Math.PI);
+      if (normal) { normal.setAttribute('x1', C.x + s * 130); normal.setAttribute('y1', C.y - Math.cos(th) * 130); normal.setAttribute('x2', C.x - s * 130); normal.setAttribute('y2', C.y + Math.cos(th) * 130); }
+      if (read) read.textContent = miss ? 'The beam misses the mirror' : `Angle in: ${ang}°      Angle out: ${ang}°`;
+      if (!say || miss) return;
+      stars.forEach(st => {
+        const dx = st.x - C.x, dy = st.y - C.y;
+        if (st.hit || dx * rx + dy * ry < 0 || Math.abs(dx * ry - dy * rx) > 24) return;
+        st.hit = true; st.el.setAttribute('opacity', 1); st.el.setAttribute('font-size', 76);
+        const n = stars.filter(x => x.hit).length; data.stars = n;
+        ctx.goal('first');
+        if (n === 3) { ctx.goal('stars'); ctx.note(sci ? 'All three stars! Each time, the angle out was exactly the same as the angle in.' : 'You hit all three stars! The mirror sends the light wherever you turn it.'); }
+        else ctx.note(sci ? `Star hit! The light came in at ${ang}° and bounced off at ${ang}°.` : `You hit a star! That is ${n} of 3. Turn the mirror to find the next one.`);
+      });
+      if (sci && ang === 45 && !said45) { said45 = true; data.a45 = true; ctx.goal('a45'); ctx.note('Angle in 45°, angle out 45°. Together they make a perfect corner of 90°.'); }
+    }
+    drag(mir, svg, { move: p => { if (Math.hypot(p.x - C.x, p.y - C.y) > 25) { th = Math.atan2(p.y - C.y, p.x - C.x); update(true); } } });
+    update(false);
+  },
+  observations(data) {
+    const o = [];
+    if (data.stars) o.push(`⭐ ${data.stars} of 3 stars hit`);
+    if (data.a45) o.push('📐 45° in → 45° out');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The beam bounced off the mirror every time. Whatever way the mirror was turned, the angle out was always equal to the angle in.'
+      : 'The light bounced off the mirror. When you turned the mirror, the light went a new way. You could aim it at each star.';
+  },
+  why: {
+    explorer: 'Light travels in a straight line. A mirror is very smooth and shiny, so light bounces off it, like a ball bouncing off a wall. When you turn the mirror, the light bounces a different way.',
+    scientist: 'Light travels in straight lines. When it hits a smooth, shiny surface it bounces off. This is called reflection. The law of reflection says that the angle going in equals the angle coming out. Scientists measure both angles from an imaginary line that sticks straight out of the mirror. It is called the normal. A periscope uses two mirrors to let you see over a wall.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0f172a' }, svg);
+    S('rect', { x: 150, y: 450, width: 500, height: 16, rx: 5, fill: '#e2e8f0', stroke: '#14b8a6', 'stroke-width': 4 }, svg);
+    S('line', { x1: 150, y1: 150, x2: 400, y2: 450, stroke: '#fde047', 'stroke-width': 6, class: 'ray' }, svg);
+    S('line', { x1: 400, y1: 450, x2: 650, y2: 150, stroke: '#fde047', 'stroke-width': 6, class: 'ray' }, svg);
+    S('line', { x1: 400, y1: 450, x2: 400, y2: 170, stroke: '#94a3b8', 'stroke-width': 3, 'stroke-dasharray': '8 8' }, svg);
+    const ball = S('circle', { r: 16, fill: '#fff' }, svg);
+    if (sci) {
+      S('path', { d: 'M400,360 A90,90 0 0 0 342,381', fill: 'none', stroke: '#f472b6', 'stroke-width': 5 }, svg); S('path', { d: 'M400,360 A90,90 0 0 1 458,381', fill: 'none', stroke: '#f472b6', 'stroke-width': 5 }, svg);
+      label(svg, 330, 340, 'angle in', 20, '#f9a8d4'); label(svg, 472, 340, 'angle out', 20, '#f9a8d4'); label(svg, 400, 150, 'normal', 18, '#cbd5e1');
+    }
+    label(svg, 400, 540, sci ? 'Angle in = angle out' : 'Light bounces like a ball', 30, '#e2e8f0');
+    scene.loop((dt, t) => { const k = (t % 2.4) / 1.2, u = k < 1 ? k : k - 1; ball.setAttribute('cx', k < 1 ? 150 + 250 * u : 400 + 250 * u); ball.setAttribute('cy', k < 1 ? 150 + 300 * u : 450 - 300 * u); });
+  },
+  home: 'Use a small mirror to bounce sunlight or flashlight light onto a wall. Stick a paper target on the wall. Can you hit it?',
+  safety: 'Never shine light into anyone’s eyes.',
+  quiz: {
+    explorer: [
+      { q: 'What does light do when it hits a mirror?', options: ['It bounces off', 'It soaks in', 'It turns into water'], answer: 0 },
+      { q: 'How does light travel?', options: ['In a straight line', 'In circles', 'In zigzags'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is it called when light bounces off a surface?', options: ['Reflection', 'Refraction', 'Absorption'], answer: 0 },
+      { q: 'Light hits a mirror at 20°. At what angle does it leave?', options: ['20°', '40°', '70°'], answer: 0 },
+      { q: 'What is the normal?', options: ['A line sticking straight out of the mirror', 'The edge of the mirror', 'The brightest part of the beam'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.9  States of Water ---------- */
+Lab.register({
+  id: 'states', title: 'Ice, Water, Steam', emoji: '🧊', color: '#06b6d4', category: 'Water and matter',
+  blurb: 'Heat and cool water to change what it is.',
+  bits: ['❄️', '💧', '🔥', '☁️', '🌡️', '🫖'],
+  question: {
+    explorer: 'Ice, water and steam look very different. Could they all be the same thing?',
+    scientist: 'Water can be a solid, a liquid or a gas. What makes it change from one state to another?'
+  },
+  predict: {
+    explorer: { prompt: 'We make water very, very cold. What will it turn into?', options: ['🧊 Ice', '☁️ Steam', '🏖️ Sand'], answer: 0 },
+    scientist: { prompt: 'At what temperature does water boil at sea level?', options: ['100 °C', '50 °C', '0 °C'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Tap the buttons to make the water cold or hot. Watch what it turns into!',
+    scientist: 'Move the temperature slider slowly. Find the exact temperatures where the water changes state, and watch the particles.'
+  },
+  goals: {
+    explorer: [{ id: 'ice', label: 'Freeze the water into ice' }, { id: 'steam', label: 'Boil the water into steam' }, { id: 'water', label: 'Turn it back into water' }],
+    scientist: [{ id: 'ice', label: 'Find the freezing point' }, { id: 'melt', label: 'Melt the ice again' }, { id: 'steam', label: 'Find the boiling point' }]
+  },
+  /* A box of particles that behave like a solid, liquid or gas. */
+  box(svg, scene, x, y, w, hh, get) {
+    S('rect', { x, y, width: w, height: hh, rx: 12, fill: '#f8fafc', stroke: '#94a3b8', 'stroke-width': 3 }, svg);
+    const ds = Array.from({ length: 16 }, (_, i) => ({ el: S('circle', { r: 9, fill: '#0ea5e9', stroke: '#0369a1', 'stroke-width': 2 }, svg), x: x + w / 2, y: y + hh - 40, vx: Math.cos(i * 2.4 + .5), vy: Math.sin(i * 2.4 + .5), i }));
+    scene.loop((dt, t) => {
+      const st = get();
+      ds.forEach(d => {
+        if (st === 'solid') {
+          const gx = x + w / 2 - 54 + (d.i % 4) * 36, gy = y + hh - 26 - Math.floor(d.i / 4) * 30, k = Math.min(1, dt * 6);
+          d.x += (gx - d.x) * k; d.y += (gy - d.y) * k;
+          d.el.setAttribute('cx', d.x + Math.sin(t * 20 + d.i) * 1.5); d.el.setAttribute('cy', d.y + Math.cos(t * 17 + d.i) * 1.5); return;
+        }
+        const sp = st === 'liquid' ? 45 : 200, top = st === 'liquid' ? y + hh * 0.5 : y + 12;
+        d.x += d.vx * sp * dt; d.y += d.vy * sp * dt;
+        if (d.x < x + 12) { d.x = x + 12; d.vx = Math.abs(d.vx); } if (d.x > x + w - 12) { d.x = x + w - 12; d.vx = -Math.abs(d.vx); }
+        if (d.y < top) { d.y += (top - d.y) * Math.min(1, dt * 5); d.vy = Math.abs(d.vy) || .5; } if (d.y > y + hh - 12) { d.y = y + hh - 12; d.vy = -Math.abs(d.vy) || -.5; }
+        d.el.setAttribute('cx', d.x); d.el.setAttribute('cy', d.y);
+      });
+    });
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    let T = 20, target = 20, state = 'liquid', spawn = 0;
+    const stateOf = t => t <= 0 ? 'solid' : t >= 100 ? 'gas' : 'liquid';
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#c7d2fe' }, svg);
+    S('rect', { x: 0, y: 520, width: 800, height: 80, fill: '#a5b4fc' }, svg);
+    const BX = sci ? 360 : 400;
+    const water = S('rect', { x: BX - 126, y: 290, width: 252, height: 206, fill: '#38bdf8' }, svg);
+    const ice = S('g', { opacity: 0, style: 'transition:opacity .6s' }, svg);
+    S('rect', { x: BX - 126, y: 290, width: 252, height: 206, fill: '#e0f2fe' }, ice);
+    S('path', { d: `M${BX - 100},330 l60,50 l-30,60 M${BX + 20},300 l40,90 l50,20 M${BX - 20},420 l70,40`, fill: 'none', stroke: '#fff', 'stroke-width': 5, 'stroke-linecap': 'round' }, ice);
+    const gFx = S('g', { 'pointer-events': 'none' }, svg);
+    S('path', { d: `M${BX - 130},200 V480 Q${BX - 130},500 ${BX - 110},500 H${BX + 110} Q${BX + 130},500 ${BX + 130},480 V200`, fill: 'none', stroke: '#475569', 'stroke-width': 8, 'stroke-linecap': 'round' }, svg);
+    const name = label(svg, BX, 170, '', 30, '#1e1b4b');
+    const fire = S('text', { x: BX, y: 558, 'font-size': 54, 'text-anchor': 'middle', text: '' }, svg);
+    let col = null, read = null;
+    if (sci) {
+      S('rect', { x: 78, y: 150, width: 24, height: 320, rx: 12, fill: '#fff', stroke: '#475569', 'stroke-width': 3 }, svg);
+      col = S('rect', { x: 84, width: 12, fill: '#ef4444' }, svg); S('circle', { cx: 90, cy: 478, r: 22, fill: '#ef4444', stroke: '#475569', 'stroke-width': 3 }, svg);
+      [[0, '0 °C'], [100, '100 °C']].forEach(([v, t]) => { const y = 455 - (v + 20) / 140 * 295; S('line', { x1: 104, y1: y, x2: 118, y2: y, stroke: '#475569', 'stroke-width': 3 }, svg); label(svg, 124, y + 6, t, 16, '#1e1b4b', 'start'); });
+      read = label(svg, 90, 130, '', 24, '#1e1b4b');
+      label(svg, 660, 215, 'Particles', 18, '#1e1b4b'); this.box(svg, scene, 570, 230, 180, 200, () => state);
+    }
+    const parts = [];
+    scene.loop(dt => {
+      if (T !== target) T += clamp(target - T, -30 * dt, 30 * dt);
+      const st = stateOf(T);
+      if (st !== state) {
+        const from = state; state = st;
+        if (st === 'solid') { data.ice = true; ctx.goal('ice'); ctx.note(sci ? 'At 0 °C the water freezes. The particles lock into place. Water is now a solid.' : 'Brr! The water froze. Now it is hard ice.'); }
+        else if (st === 'gas') { data.steam = true; ctx.goal('steam'); ctx.note(sci ? 'At 100 °C the water boils. The particles break free and fly off as a gas called water vapor.' : 'It is boiling! Bubbles rise and steam floats away.'); }
+        else if (from === 'solid') { data.melt = true; ctx.goal('melt'); ctx.goal('water'); ctx.note(sci ? 'Above 0 °C the ice melts. The particles can slide past each other again. Water is a liquid.' : 'The ice melted. It is wet water again!'); }
+        else { ctx.goal('water'); ctx.note(sci ? 'Below 100 °C the boiling stops. The water stays liquid.' : 'It stopped boiling. It is water again!'); }
+      }
+      ice.setAttribute('opacity', state === 'solid' ? 1 : 0);
+      water.setAttribute('fill', T > 60 ? '#7dd3fc' : '#38bdf8');
+      name.textContent = sci ? { solid: 'Ice (solid)', liquid: 'Water (liquid)', gas: 'Boiling: water + vapor (gas)' }[state] : { solid: 'Ice', liquid: 'Water', gas: 'Boiling water and steam' }[state];
+      fire.textContent = target > T + 0.5 ? '🔥' : target < T - 0.5 ? '❄️' : '';
+      if (col) { const hh = (T + 20) / 140 * 295; col.setAttribute('y', 455 - hh); col.setAttribute('height', hh + 10); read.textContent = Math.round(T) + ' °C'; }
+      spawn += dt * (T >= 100 ? 14 : T > 70 ? (T - 70) / 6 : 0);
+      while (spawn >= 1) {
+        spawn--;
+        const steam = parts.length % 2 === 0 || T < 100;
+        parts.push({ steam, x: BX - 100 + Math.random() * 200, y: steam ? 285 : 490, r: steam ? 14 + Math.random() * 12 : 5 + Math.random() * 6, life: steam ? 2.2 : 1,
+          el: S('circle', steam ? { fill: '#fff', opacity: .8 } : { fill: 'none', stroke: '#fff', 'stroke-width': 3 }, gFx) });
+      }
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i]; p.life -= dt; p.y -= (p.steam ? 90 : 200) * dt;
+        p.el.setAttribute('cx', p.x + Math.sin(p.y / 25) * 8); p.el.setAttribute('cy', p.y); p.el.setAttribute('r', p.r);
+        if (p.steam) p.el.setAttribute('opacity', clamp(p.life / 1.5, 0, .8));
+        if (p.life <= 0 || (!p.steam && p.y < 295)) { p.el.remove(); parts.splice(i, 1); }
+      }
+    });
+    if (sci) {
+      const rng = h('input', { type: 'range', min: -20, max: 120, value: 20, style: 'width:300px', 'aria-label': 'Temperature', oninput: () => { target = +rng.value; } });
+      controls.append(h('label', null, '🌡️ Temperature', rng));
+    } else {
+      controls.append(seg('Make it', [{ v: -10, t: '❄️ Cold' }, { v: 20, t: '🙂 Warm' }, { v: 110, t: '🔥 Hot' }], 20, v => { target = v; }));
+    }
+  },
+  observations(data) {
+    const o = [];
+    if (data.ice) o.push('❄️ cold → 🧊 ice');
+    if (data.melt) o.push('🙂 warmer → 💧 water');
+    if (data.steam) o.push('🔥 hot → ☁️ steam');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The water froze into a solid at 0 °C and boiled into a gas at 100 °C. In between it was a liquid. Warming the ice melted it again, so the changes can be reversed.'
+      : 'When the water got very cold, it turned into ice. When it got very hot, it bubbled and turned into steam. In between, it was water.';
+  },
+  why: {
+    explorer: 'Water can be three things. When it is very cold, it is hard ice. When it is warm, it is wet water. When it is very hot, it turns into steam and floats into the air. It is always still water!',
+    scientist: 'Water is made of tiny particles called molecules. In ice they are locked in place and can only wiggle. That is a solid. Heat gives the molecules energy. At 0 °C they break loose and slide around each other. That is a liquid. At 100 °C they have so much energy that they fly apart. That is a gas called water vapor. Cooling does the reverse. The water never disappears. It only changes state.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    const names = sci ? ['Solid', 'Liquid', 'Gas'] : ['Ice', 'Water', 'Steam'];
+    ['solid', 'liquid', 'gas'].forEach((st, i) => {
+      const x = 60 + i * 245;
+      this.box(svg, scene, x, 200, 190, 220, () => st);
+      label(svg, x + 95, 170, ['🧊', '💧', '☁️'][i] + ' ' + names[i], 30, '#1f2a44');
+      label(svg, x + 95, 460, ['locked in place', 'sliding around', 'flying free'][i], 20);
+    });
+    label(svg, 400, 540, '❄️ colder  ←        →  hotter 🔥', 26, '#1f2a44');
+  },
+  home: 'Put an ice cube on a plate and time how long it takes to melt. Then ask a grown-up to boil a kettle, and watch the steam from far back.',
+  safety: 'Steam and boiling water can burn you. Only watch, and stay back.',
+  quiz: {
+    explorer: [
+      { q: 'What does water turn into when it gets very cold?', options: ['Ice', 'Steam', 'Juice'], answer: 0 },
+      { q: 'Ice, water and steam are all…', options: ['water', 'air', 'different things'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'At what temperature does water freeze?', options: ['0 °C', '100 °C', '50 °C'], answer: 0 },
+      { q: 'In which state do the particles fly around freely?', options: ['Gas', 'Solid', 'Liquid'], answer: 0 },
+      { q: 'What do particles gain when water is heated?', options: ['Energy', 'Color', 'Weight'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.10  Dissolving ---------- */
+Lab.register({
+  id: 'dissolve', title: 'Disappearing Act', emoji: '🥛', color: '#84cc16', category: 'Water and matter',
+  blurb: 'Stir things into water. Which ones disappear?',
+  bits: ['🥄', '🧂', '🍬', '🏖️', '🫒', '💧'],
+  question: {
+    explorer: 'When you stir sugar into water, where does it go? Does everything disappear in water?',
+    scientist: 'Some materials dissolve in water and some do not. What changes how fast something dissolves, and is there a limit?'
+  },
+  predict: {
+    explorer: { prompt: 'We stir sugar into water. What will happen to the sugar?', options: ['It will disappear into the water', 'It will stay at the bottom', 'It will float on top'], answer: 0 },
+    scientist: { prompt: 'Does sugar dissolve faster in hot water or in cold water?', options: ['In hot water', 'In cold water', 'The same in both'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Drag sugar, salt, sand or oil into the glass. Then stir! Move your finger round and round in the water.',
+    scientist: 'Add a material and stir. Test all four. Then compare sugar in cold and hot water, and keep adding salt to find the limit.'
+  },
+  goals: {
+    explorer: [{ id: 'd2', label: 'Find 2 things that disappear in water' }, { id: 'n2', label: 'Find 2 things that do not disappear' }],
+    scientist: [{ id: 'all', label: 'Test all 4 materials' }, { id: 'hot', label: 'Dissolve sugar in cold water and in hot water' }, { id: 'sat', label: 'Add salt until no more will dissolve' }]
+  },
+  subs: {
+    sugar: { name: 'sugar', col: '#ffffff', sol: true }, salt: { name: 'salt', col: '#e2e8f0', sol: true },
+    sand: { name: 'sand', col: '#d6a45c', sol: false }, oil: { name: 'oil', col: '#facc15', sol: false, float: true }
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, subs = this.subs, GX = 500;
+    data.tested = data.tested || {}; data.times = data.times || {};
+    let active = null, clock = 0, lastStir = -9, temp = 'warm', grains = [], diss = { sugar: 0, salt: 0 };
+    const factor = { cold: 0.5, warm: 1, hot: 2 };
+    const water = S('rect', { x: GX - 136, y: 225, width: 272, height: 281, fill: '#bae6fd' }, svg);
+    const gG = S('g', { 'pointer-events': 'none' }, svg);
+    S('path', { d: `M${GX - 140},190 V490 Q${GX - 140},510 ${GX - 120},510 H${GX + 120} Q${GX + 140},510 ${GX + 140},490 V190`, fill: 'none', stroke: '#475569', 'stroke-width': 8, 'stroke-linecap': 'round' }, svg);
+    const spoon = S('text', { 'font-size': 70, 'text-anchor': 'middle', dy: '.35em', opacity: 0, 'pointer-events': 'none', text: '🥄' }, svg);
+    const info = label(svg, GX, 560, 'A glass of water', 22, '#1f2a44');
+    const area = S('rect', { x: GX - 136, y: 200, width: 272, height: 306, fill: 'transparent', class: 'item' }, svg);
+    drag(area, svg, {
+      move: p => { lastStir = clock; spoon.setAttribute('x', clamp(p.x, GX - 110, GX + 110)); spoon.setAttribute('y', clamp(p.y, 180, 440) - 40); spoon.setAttribute('opacity', 1); },
+      end: () => spoon.setAttribute('opacity', 0)
+    });
+    function addDose(k) {
+      if (active && !active.said) return ctx.note('Stir the water first and see what happens!');
+      const s = subs[k], sat = k === 'salt' && diss.salt >= 3;
+      active = { k, prog: 0, stirT: 0, said: false, sat, sol: s.sol && !sat };
+      const n = s.float ? 5 : 12;
+      for (let i = 0; i < n; i++) {
+        const r = s.float ? 15 : 6 + (i % 3);
+        grains.push({ dose: active, r, x: GX - 80 + Math.random() * 160, y: 215, ph: Math.random() * 6.3, k: 0.4 + Math.random() * 0.6, float: !!s.float, rest: s.float ? 240 : 498 - r - (i % 3) * 9,
+          el: S('circle', { r, fill: s.col, stroke: s.float ? '#ca8a04' : '#94a3b8', 'stroke-width': 2 }, gG) });
+      }
+      info.textContent = `Water with ${s.name}`;
+      ctx.note(`You added ${s.name}. Now stir! Move your finger round and round in the glass.`);
+    }
+    function finish() {
+      const a = active, s = subs[a.k]; a.said = true;
+      if (a.sol) {
+        grains = grains.filter(g => { if (g.dose === a) { g.el.remove(); return false; } return true; });
+        diss[a.k]++; data.tested[a.k] = { name: s.name, ok: true };
+        const secs = a.stirT.toFixed(1);
+        if (a.k === 'sugar') data.times[temp] = secs;
+        if (!sci) ctx.note(`The ${s.name} is gone! It dissolved in the water. It is still there, but the bits are too tiny to see.`);
+        else if (a.k === 'sugar' && data.times.cold && data.times.hot) ctx.note(`The sugar dissolved after ${secs} seconds in ${temp} water. Cold water took ${data.times.cold} seconds and hot water took ${data.times.hot} seconds. Heat speeds up dissolving!`);
+        else ctx.note(`The ${s.name} dissolved after ${secs} seconds of stirring in ${temp} water. The mix is called a solution.` + (a.k === 'salt' ? ' Add more salt to look for the limit.' : ''));
+        if (data.times.cold && data.times.hot) ctx.goal('hot');
+      } else if (a.sat) {
+        data.sat = true; ctx.goal('sat');
+        ctx.note('This salt will not dissolve. The water is already holding all the salt it can. The solution is saturated.');
+      } else {
+        data.tested[a.k] = { name: s.name, ok: false };
+        ctx.note(a.k === 'sand' ? (sci ? 'The sand swirls but does not dissolve. Sand is insoluble, so it settles on the bottom.' : 'The sand does not disappear. It swirls around and sinks back to the bottom.')
+          : (sci ? 'The oil breaks into drops but does not dissolve. Oil is less dense than water, so it floats back to the top.' : 'The oil does not mix with the water. It floats back to the top.'));
+      }
+      const t = data.tested;
+      if (t.sugar && t.salt) ctx.goal('d2');
+      if (t.sand && t.oil) ctx.goal('n2');
+      if (Object.keys(t).length === 4) ctx.goal('all');
+    }
+    scene.loop(dt => {
+      clock += dt;
+      const stirring = clock - lastStir < 0.35;
+      if (active && !active.said) {
+        if (stirring) active.stirT += dt;
+        if (active.sol) { active.prog += dt * (stirring ? 1 : 0.06) * factor[temp] / 6; if (active.prog >= 1) finish(); }
+        else if (active.stirT >= 3) finish();
+      }
+      for (const g of grains) {
+        if (stirring) {
+          const a = clock * 4 + g.ph, k = Math.min(1, dt * 4);
+          g.x += (GX + 100 * Math.cos(a) * g.k - g.x) * k; g.y += ((g.float ? 300 : 380) + 80 * Math.sin(a * 1.3) * g.k - g.y) * k;
+        } else g.y += clamp(g.rest - g.y, -110 * dt, 150 * dt);
+        g.el.setAttribute('cx', g.x.toFixed(1)); g.el.setAttribute('cy', g.y.toFixed(1));
+        if (g.dose.sol) g.el.setAttribute('r', g.r * Math.sqrt(Math.max(0, 1 - g.dose.prog)));
+      }
+    });
+    Object.keys(subs).forEach((k, i) => {
+      const s = subs[k], y = 110 + i * 125;
+      const g = S('g', { class: 'item', transform: `translate(120,${y})` }, svg);
+      S('rect', { x: -70, y: -48, width: 140, height: 104, rx: 22, fill: '#f1f5f9', stroke: '#cbd5e1', 'stroke-width': 4 }, g);
+      S('ellipse', { cx: 0, cy: -18, rx: 50, ry: 20, fill: s.col, stroke: '#94a3b8', 'stroke-width': 3 }, g);
+      label(g, 0, 40, s.name.toUpperCase(), 19, '#1f2a44');
+      let blob = null;
+      drag(g, svg, {
+        start: p => { if (blob) blob.remove(); blob = S('circle', { cx: p.x, cy: p.y, r: 22, fill: s.col, stroke: '#94a3b8', 'stroke-width': 3, 'pointer-events': 'none' }, svg); },
+        move: p => { blob.setAttribute('cx', p.x); blob.setAttribute('cy', p.y); },
+        end: (p, p0) => {
+          const tap = Math.hypot(p.x - p0.x, p.y - p0.y) < 12, inGlass = Math.abs(p.x - GX) < 150 && p.y > 150 && p.y < 520;
+          blob.remove(); blob = null;
+          if (tap || inGlass) addDose(k);
+        }
+      });
+    });
+    controls.append(h('button', { class: 'mini', onclick: () => { grains.forEach(g => g.el.remove()); grains = []; active = null; diss = { sugar: 0, salt: 0 }; info.textContent = 'A glass of fresh water'; ctx.note('Here is a glass of fresh water. Add something new!'); } }, '🚰 New water'));
+    if (sci) controls.prepend(seg('🌡️ Water', [{ v: 'cold', t: 'Cold' }, { v: 'warm', t: 'Warm' }, { v: 'hot', t: 'Hot' }], 'warm', v => { temp = v; water.setAttribute('fill', { cold: '#bfdbfe', warm: '#bae6fd', hot: '#fecdd3' }[v]); }));
+  },
+  observations(data) {
+    const em = { sugar: '🍬', salt: '🧂', sand: '🏖️', oil: '🫒' };
+    const o = Object.keys(data.tested || {}).map(k => `${em[k]} ${k}: ${data.tested[k].ok ? 'dissolves' : 'does not dissolve'}`);
+    if (data.times && data.times.cold) o.push(`❄️ sugar in cold water: ${data.times.cold} s`);
+    if (data.times && data.times.hot) o.push(`🔥 sugar in hot water: ${data.times.hot} s`);
+    if (data.sat) o.push('🧂 too much salt: saturated');
+    return o;
+  },
+  result(lv, data) {
+    const t = Object.values(data.tested || {});
+    const yes = t.filter(x => x.ok).map(x => x.name), no = t.filter(x => !x.ok).map(x => x.name);
+    const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+    let s = '';
+    if (yes.length) s += cap(`${listWords(yes)} dissolved in the water. `);
+    if (no.length) s += cap(`${listWords(no)} did not dissolve. `);
+    if (lv === 'scientist') s += 'Sugar dissolved faster in hot water than in cold water. After several spoons of salt, the water could not dissolve any more.';
+    else s += 'Stirring helped the sugar and salt disappear.';
+    return s;
+  },
+  why: {
+    explorer: 'Sugar and salt break into bits that are too tiny to see. The bits spread all through the water. We say they dissolve. The sugar is still there. That is why the water tastes sweet! Sand does not break up in water, so it sinks. Oil and water do not mix, so the oil floats on top.',
+    scientist: 'When sugar dissolves, water molecules pull it apart into single molecules that are far too small to see. The mix is called a solution. In hot water the molecules move faster and hit the sugar harder and more often, so it dissolves faster. Stirring helps too. Water can only hold a certain amount. When no more will dissolve, the solution is saturated. Sand is insoluble, so it settles. Oil does not mix with water and is less dense, so it floats.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('rect', { x: 150, y: 110, width: 500, height: 380, rx: 20, fill: '#bae6fd', stroke: '#475569', 'stroke-width': 6 }, svg);
+    const dots = Array.from({ length: 14 }, (_, i) => ({ el: S('circle', { r: 10, fill: '#38bdf8', stroke: '#0369a1', 'stroke-width': 2 }, svg), ph: i * 1.9 }));
+    const cube = Array.from({ length: 9 }, (_, i) => ({ el: S('rect', { width: 26, height: 26, rx: 4, fill: '#fff', stroke: '#94a3b8', 'stroke-width': 2 }, svg), hx: 361 + (i % 3) * 26, hy: 261 + Math.floor(i / 3) * 26, tx: 190 + (i * 167) % 420, ty: 140 + (i * 113) % 300, i }));
+    label(svg, 400, 70, sci ? 'Water molecules pull the sugar apart' : 'The sugar breaks into tiny bits', 28, '#1f2a44');
+    label(svg, 400, 545, 'The bits spread out until you cannot see them', 22);
+    scene.loop((dt, t) => {
+      const c = t % 8;
+      dots.forEach(d => { d.el.setAttribute('cx', 400 + Math.cos(t * 0.7 + d.ph) * 200 * Math.sin(d.ph * 3 + 1)); d.el.setAttribute('cy', 300 + Math.sin(t * 0.9 + d.ph * 2) * 150); });
+      cube.forEach(q => {
+        const k = clamp((c - 1 - q.i * 0.45) / 1.5, 0, 1), sc = 1 - 0.75 * k;
+        q.el.setAttribute('x', q.hx + (q.tx - q.hx) * k); q.el.setAttribute('y', q.hy + (q.ty - q.hy) * k);
+        q.el.setAttribute('width', 26 * sc); q.el.setAttribute('height', 26 * sc); q.el.setAttribute('opacity', c > 7.4 ? (8 - c) / 0.6 : 1 - 0.5 * k);
+      });
+    });
+  },
+  home: 'Stir a spoon of sugar into a glass of water. Then try salt, rice and flour in fresh glasses. Which ones disappear?',
+  quiz: {
+    explorer: [
+      { q: 'Which one disappears when you stir it into water?', options: ['Sugar', 'Sand', 'Oil'], answer: 0 },
+      { q: 'Where does the sugar go?', options: ['It breaks into bits too tiny to see', 'It flies away', 'It turns into sand'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What do we call sugar mixed evenly into water?', options: ['A solution', 'A solid', 'A shadow'], answer: 0 },
+      { q: 'How can you make sugar dissolve faster?', options: ['Use hot water and stir', 'Use cold water', 'Add sand'], answer: 0 },
+      { q: 'What does saturated mean?', options: ['No more can dissolve', 'The water is frozen', 'The water is empty'], answer: 0 }
     ]
   }
 });
