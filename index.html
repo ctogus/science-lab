@@ -322,6 +322,7 @@ const Voice = {
     return t.replace(/\p{Extended_Pictographic}|️|‍/gu, '')
       .replace(/g\/cm³/g, 'grams per cubic centimeter')
       .replace(/ ?°C/g, ' degrees Celsius').replace(/°/g, ' degrees').replace(/(\d) s\b/g, '$1 seconds')
+      .replace(/(\d) Hz\b/g, '$1 hertz').replace(/(\d):00\b/g, '$1 o’clock')
       .replace(/(\d) ml\b/g, '$1 milliliters').replace(/(\d) cm\b/g, '$1 centimeters').replace(/→/g, ' makes ')
       .replace(/(\d) V\b/g, '$1 volts').replace(/(\d) A\b/g, '$1 amps')
       .replace(/÷/g, ' divided by ').replace(/×/g, ' times ').replace(/=/g, ' equals ')
@@ -2684,6 +2685,597 @@ Lab.register({
       { q: 'What force slows a falling feather?', options: ['Air resistance', 'Magnetism', 'Friction with the floor'], answer: 0 },
       { q: 'In a vacuum, which falls faster: a hammer or a feather?', options: ['Neither. They fall at the same rate', 'The hammer', 'The feather'], answer: 0 },
       { q: 'Where did an astronaut drop a hammer and a feather together?', options: ['On the Moon', 'On Mars', 'Under the sea'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.16  Static Electricity ---------- */
+Lab.register({
+  id: 'static', title: 'Sticky Balloon', emoji: '⚡', color: '#eab308', category: 'Electricity',
+  blurb: 'Rub a balloon and pick up paper without touching it.',
+  bits: ['🎈', '👧', '📄', '✨', '🧶', '🌩️'],
+  question: {
+    explorer: 'Can a balloon pick up paper without glue and without touching it?',
+    scientist: 'After you rub a balloon on your hair, it attracts small things. What changed in the balloon?'
+  },
+  predict: {
+    explorer: { prompt: 'We rub a balloon on hair and hold it over bits of paper. What will happen?', options: ['The paper jumps up to the balloon', 'Nothing happens', 'The paper blows away'], answer: 0 },
+    scientist: { prompt: 'You rub the balloon for longer. What happens to its pull?', options: ['It gets stronger', 'It gets weaker', 'It stays the same'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Rub the balloon on the hair, back and forth. Then hold it over the paper bits!',
+    scientist: 'Rub the balloon on the hair to charge it. Hold it near the paper. Compare a small charge with a full charge, then discharge it.'
+  },
+  goals: {
+    explorer: [{ id: 'rub', label: 'Rub the balloon on the hair' }, { id: 'pick5', label: 'Pick up 5 paper bits' }, { id: 'strong', label: 'Pick up all 10 paper bits' }],
+    scientist: [{ id: 'pick', label: 'Pick up paper with a charged balloon' }, { id: 'strong', label: 'Charge it fully and pick up all 10 bits' }, { id: 'zap', label: 'Discharge the balloon while paper is stuck' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, B = { x: 430, y: 220 };
+    let c = 0, last = null, nStuck = 0, saidRub = false, saidFull = false;
+    S('rect', { x: 300, y: 540, width: 460, height: 14, rx: 5, fill: '#c89b6a' }, svg);
+    S('text', { x: 140, y: 300, 'font-size': 170, 'text-anchor': 'middle', dy: '.35em', text: '👧' }, svg); label(svg, 140, 430, 'Rub here', 20);
+    S('rect', { x: 300, y: 36, width: 300, height: 24, rx: 12, fill: '#fff', stroke: '#94a3b8', 'stroke-width': 3 }, svg);
+    const bar = S('rect', { x: 303, y: 39, width: 0, height: 18, rx: 9, fill: '#eab308' }, svg); label(svg, 290, 55, 'Charge', 18, '#5b6785', 'end');
+    const cols = ['#fecaca', '#bfdbfe', '#bbf7d0', '#fde68a', '#e9d5ff'];
+    const bits = Array.from({ length: 10 }, (_, i) => ({ hx: 340 + i * 42, hy: 528, x: 340 + i * 42, y: 528, stuck: false, el: S('rect', { x: -9, y: -9, width: 18, height: 18, rx: 3, fill: cols[i % 5], stroke: '#94a3b8', 'stroke-width': 1.5 }, svg) }));
+    const g = S('g', { class: 'item' }, svg);
+    S('polygon', { points: '-8,62 8,62 12,78 -12,78', fill: '#db2777' }, g);
+    S('ellipse', { rx: 52, ry: 64, fill: '#f472b6', stroke: '#be185d', 'stroke-width': 4 }, g);
+    const signs = label(g, 0, 10, '', 24, '#fff');
+    function show() { bar.setAttribute('width', 294 * c); if (sci) signs.textContent = '− '.repeat(Math.round(c * 5)).trim(); }
+    drag(g, svg, {
+      start: p => { last = p; },
+      move: p => {
+        B.x = clamp(p.x, 60, 740); B.y = clamp(p.y, 90, 470);
+        if (Math.hypot(B.x - 140, B.y - 300) < 130) {
+          c = Math.min(1, c + Math.hypot(p.x - last.x, p.y - last.y) / 1800); show();
+          if (c > 0.2 && !saidRub) { saidRub = true; ctx.goal('rub'); ctx.note(sci ? 'Rubbing moves electrons from the hair onto the balloon. Now the balloon has a negative charge. Hold it near the paper.' : 'Zzzip! The balloon is getting charged. Now hold it over the paper bits!'); }
+          if (c >= 1 && !saidFull) { saidFull = true; ctx.note('The balloon is fully charged! Now it pulls as hard as it can.'); }
+        }
+        last = p;
+      }
+    });
+    function picked() {
+      data.max = Math.max(data.max || 0, nStuck);
+      ctx.goal('pick'); if (nStuck >= 5) ctx.goal('pick5'); if (nStuck === 10) ctx.goal('strong');
+      if (nStuck === 1) ctx.note(sci ? 'The charged balloon attracts the paper, even without touching it.' : 'A paper bit jumped up and stuck to the balloon!');
+      else if (nStuck === 5) ctx.note(sci ? 'Five bits. A bigger charge can hold more paper. Rub the balloon some more.' : 'Five bits! Rub the balloon more to pick up even more.');
+      else if (nStuck === 10) ctx.note('All ten! A big charge makes a strong pull.');
+    }
+    scene.loop(dt => {
+      g.setAttribute('transform', `translate(${B.x.toFixed(1)},${B.y.toFixed(1)})`);
+      const cap = Math.round(c * 10);
+      for (const b of bits) {
+        if (b.stuck) { b.x = B.x + b.ox; b.y = B.y + b.oy; }
+        else {
+          const dx = B.x - b.x, dy = B.y + 60 - b.y, d = Math.hypot(dx, dy) || 1;
+          if (c > 0.15 && nStuck < cap && d < 60 + c * 170) {
+            if (d < 28) { b.stuck = true; b.ox = (Math.random() - .5) * 76; b.oy = 44 + Math.random() * 26; nStuck++; picked(); }
+            else { b.x += dx / d * 620 * dt; b.y += dy / d * 620 * dt; }
+          } else { b.x += (b.hx - b.x) * Math.min(1, dt * 8); b.y += clamp(b.hy - b.y, -400 * dt, 500 * dt); }
+        }
+        b.el.setAttribute('transform', `translate(${b.x.toFixed(1)},${b.y.toFixed(1)}) rotate(${(b.hx * 7) % 50})`);
+      }
+    });
+    controls.append(h('button', { class: 'mini', onclick: () => {
+      if (nStuck) { data.zap = true; ctx.goal('zap'); }
+      c = 0; nStuck = 0; saidRub = saidFull = false; bits.forEach(b => { b.stuck = false; }); show();
+      ctx.note(sci ? 'You touched the balloon to metal. The extra electrons flowed away, so the balloon lost its charge and the paper fell.' : 'The charge is gone and the paper falls off. Rub the balloon again!');
+    } }, sci ? '🔩 Touch metal (discharge)' : '↺ Start again'));
+    show();
+  },
+  observations(data) {
+    const o = [];
+    if (data.max) o.push(`🎈 picked up ${data.max} paper bit${data.max > 1 ? 's' : ''}`);
+    if (data.zap) o.push('🔩 discharged: the paper fell');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'After rubbing, the balloon attracted the paper without touching it. The more it was rubbed, the more paper it could hold. When it was discharged, the paper fell off.'
+      : 'After you rubbed the balloon, the paper bits jumped up and stuck to it. More rubbing picked up more paper.';
+  },
+  why: {
+    explorer: 'Rubbing the balloon on hair gives it a charge called static electricity. A charged balloon can pull light things, like bits of paper, without touching them. That is also why your hair stands up when you pull off a wool hat!',
+    scientist: 'Everything is made of atoms, and atoms contain tiny charged particles called electrons. Rubbing moves electrons from the hair onto the balloon, so the balloon gets a negative charge. A charged object attracts light, uncharged things like paper. More rubbing moves more electrons, so the pull is stronger. Touching metal lets the extra electrons flow away, and the pull disappears. Lightning is a giant spark of static electricity.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('text', { x: 170, y: 300, 'font-size': 190, 'text-anchor': 'middle', dy: '.35em', text: '👧' }, svg);
+    S('ellipse', { cx: 580, cy: 290, rx: 110, ry: 135, fill: '#f472b6', stroke: '#be185d', 'stroke-width': 5 }, svg);
+    const ds = Array.from({ length: 8 }, (_, i) => ({ el: S('g', {}, svg), ph: i / 8, y: 200 + (i * 53) % 190 }));
+    ds.forEach(d => { S('circle', { r: 15, fill: '#fde047', stroke: '#a16207', 'stroke-width': 3 }, d.el); label(d.el, 0, 8, '−', 24, '#1f2a44'); });
+    label(svg, 400, 70, sci ? 'Electrons move from the hair to the balloon' : 'Rubbing moves tiny charges onto the balloon', 26, '#1f2a44');
+    label(svg, 580, 480, sci ? 'Negative charge' : 'Charged!', 26, '#be185d');
+    scene.loop((dt, t) => ds.forEach(d => { const k = (t * 0.35 + d.ph) % 1; d.el.setAttribute('transform', `translate(${250 + 280 * k},${d.y + Math.sin(k * 6.3) * 14})`); }));
+  },
+  home: 'Rub a balloon on your hair or on a wool sweater. Hold it over tiny bits of tissue paper. Then hold it near a thin stream of water from the tap and watch the water bend!',
+  quiz: {
+    explorer: [
+      { q: 'What do you do to charge a balloon?', options: ['Rub it on your hair', 'Put it in water', 'Leave it in the sun'], answer: 0 },
+      { q: 'What can a charged balloon pick up?', options: ['Little bits of paper', 'A heavy rock', 'A chair'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What moves onto the balloon when you rub it?', options: ['Electrons', 'Air', 'Water'], answer: 0 },
+      { q: 'How do you make the balloon pull harder?', options: ['Rub it more', 'Rub it less', 'Blow on it'], answer: 0 },
+      { q: 'Which of these is a giant spark of static electricity?', options: ['Lightning', 'A rainbow', 'An echo'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.17  Sound Waves ---------- */
+Lab.register({
+  id: 'sound', title: 'String Sounds', emoji: '🎸', color: '#db2777', category: 'Sound',
+  blurb: 'Pluck strings and hear high and low sounds.',
+  bits: ['🎵', '🎻', '👂', '🔊', '🎶', '🪕'],
+  question: {
+    explorer: 'A guitar has strings that make different sounds. Why are some sounds high and some low?',
+    scientist: 'Every sound starts with a vibration. What decides how high and how loud a sound is?'
+  },
+  predict: {
+    explorer: { prompt: 'Which string makes the highest sound?', options: ['The shortest string', 'The longest string', 'They all sound the same'], answer: 0 },
+    scientist: { prompt: 'You pluck the same string harder. What changes?', options: ['It gets louder, but the pitch stays the same', 'The pitch gets higher', 'Nothing changes'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Tap each string to pluck it. Listen! Which is high? Which is low?',
+    scientist: 'Tap the string to pluck it. Change its length and how hard you pluck. Watch the wave and the frequency.'
+  },
+  goals: {
+    explorer: [{ id: 'pluck', label: 'Pluck a string' }, { id: 'all', label: 'Pluck all 4 strings' }],
+    scientist: [{ id: 'high', label: 'Make a sound above 700 Hz' }, { id: 'low', label: 'Make a sound below 320 Hz' }, { id: 'loud', label: 'Pluck the string softly and hard' }]
+  },
+  tone(f, vol) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const ac = this.ac || (this.ac = new AC()); if (ac.state === 'suspended') ac.resume();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.2);
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 1.25);
+    } catch (_) {}
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, self = this, strings = [];
+    data.plucked = data.plucked || {};
+    const mk = (x0, x1, y, f, col, onPluck) => {
+      const s = { x0, x1, y, f, amp: 0, ph: 0 };
+      S('circle', { cx: x0, cy: y, r: 11, fill: '#475569' }, svg); s.peg = S('circle', { cx: x1, cy: y, r: 11, fill: '#475569' }, svg);
+      s.path = S('path', { fill: 'none', stroke: col, 'stroke-width': 6, 'stroke-linecap': 'round' }, svg);
+      s.hit = S('rect', { x: x0, y: y - 36, width: x1 - x0, height: 72, fill: 'transparent', class: 'item' }, svg);
+      s.hit.addEventListener('pointerdown', e => { e.preventDefault(); onPluck(s); });
+      strings.push(s); return s;
+    };
+    let wAmp = 0, wPh = 0, wave = null, read = null, L = 60, hard = false;
+    if (!sci) {
+      [[620, 262, '#3b82f6'], [500, 330, '#22c55e'], [400, 392, '#f59e0b'], [310, 523, '#ef4444']].forEach(([len, f, col], i) => mk(90, 90 + len, 130 + i * 105, f, col, s => {
+        s.amp = 26; self.tone(f, .25); data.plucked[i] = true; ctx.goal('pluck');
+        if (Object.keys(data.plucked).length === 4) ctx.goal('all');
+        ctx.note(i === 0 ? 'A low, deep sound. The longest string shakes slowly.' : i === 3 ? 'A high sound! The shortest string shakes very fast.' : 'This string is in between, so its sound is in between too.');
+      }));
+    } else {
+      const s = mk(90, 90 + L * 7.5, 150, 440, '#db2777', s => {
+        s.amp = hard ? 30 : 12; wAmp = hard ? 85 : 32; self.tone(s.f, hard ? .3 : .07);
+        data[hard ? 'hard' : 'soft'] = true; data.fs = (data.fs || []).concat(s.f).slice(-8);
+        if (s.f > 700) ctx.goal('high'); if (s.f < 320) ctx.goal('low'); if (data.hard && data.soft) ctx.goal('loud');
+        ctx.note(`The string is ${L} cm long. It vibrates ${s.f} times each second. That is ${s.f} Hz. ` + (hard ? 'A hard pluck makes a bigger wave and a louder sound.' : 'A soft pluck makes a small wave and a quiet sound.'));
+      });
+      S('rect', { x: 60, y: 290, width: 680, height: 230, rx: 16, fill: '#0f172a' }, svg);
+      wave = S('polyline', { fill: 'none', stroke: '#f472b6', 'stroke-width': 5, 'stroke-linejoin': 'round' }, svg);
+      read = label(svg, 400, 560, '', 22, '#1f2a44');
+      const setL = v => { L = v; s.x1 = 90 + L * 7.5; s.f = Math.round(26400 / L); s.peg.setAttribute('cx', s.x1); s.hit.setAttribute('width', s.x1 - s.x0); read.textContent = `Length: ${L} cm      Frequency: ${s.f} Hz`; };
+      const rng = h('input', { type: 'range', min: 30, max: 90, value: 60, 'aria-label': 'String length', oninput: () => setL(+rng.value) });
+      controls.append(h('label', null, '📏 Length', rng), seg('Pluck', [{ v: false, t: 'Softly' }, { v: true, t: 'Hard' }], false, v => { hard = v; }));
+      setL(60);
+    }
+    scene.loop(dt => {
+      strings.forEach(s => {
+        s.amp *= Math.exp(-dt * 2.2); s.ph += dt * Math.min(70, s.f / 7);
+        s.path.setAttribute('d', `M${s.x0},${s.y} Q${(s.x0 + s.x1) / 2},${(s.y + s.amp * 2 * Math.sin(s.ph)).toFixed(1)} ${s.x1},${s.y}`);
+      });
+      if (wave) {
+        wAmp *= Math.exp(-dt * 1.6); wPh += dt * 9;
+        const lam = 60000 / strings[0].f; let pts = '';
+        for (let x = 70; x <= 730; x += 6) pts += `${x},${(405 + wAmp * Math.sin(2 * Math.PI * x / lam - wPh)).toFixed(1)} `;
+        wave.setAttribute('points', pts);
+      }
+    });
+  },
+  observations(data, lv) {
+    if (lv !== 'scientist') return ['🎵 long string: low sound', '🎶 short string: high sound'];
+    const o = (data.fs || []).map(f => `🎵 ${f} Hz`);
+    if (data.hard && data.soft) o.push('🔊 hard pluck: louder, same pitch');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'A shorter string vibrated faster and gave a higher frequency and a higher pitch. Plucking harder made a taller wave and a louder sound, but the frequency did not change.'
+      : 'Each string made its own sound. The long string made a low sound. The short string made a high sound.';
+  },
+  why: {
+    explorer: 'Sound is made when something shakes very fast. This shaking is called vibration. A short string shakes quickly and makes a high sound. A long string shakes slowly and makes a low sound. The shaking travels through the air to your ears.',
+    scientist: 'Sound is a vibration. The string pushes the air back and forth, and a wave of squeezed and stretched air travels to your ear. The number of vibrations each second is the frequency, measured in hertz. A higher frequency gives a higher pitch. Shorter strings vibrate faster. The size of the vibration is called the amplitude. A bigger amplitude sounds louder. Guitars, violins and pianos all use strings of different lengths.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('text', { x: 110, y: 300, 'font-size': 120, 'text-anchor': 'middle', dy: '.35em', text: '🎸' }, svg);
+    S('text', { x: 700, y: 300, 'font-size': 110, 'text-anchor': 'middle', dy: '.35em', text: '👂' }, svg);
+    const arcs = Array.from({ length: 6 }, () => S('path', { fill: 'none', stroke: '#db2777', 'stroke-width': 7, 'stroke-linecap': 'round' }, svg));
+    label(svg, 400, 90, sci ? 'A sound wave travels through the air' : 'The shaking travels through the air', 28, '#1f2a44');
+    label(svg, 400, 540, 'vibration  →  air  →  ear', 26);
+    scene.loop((dt, t) => arcs.forEach((a, i) => { const k = (t * 0.4 + i / 6) % 1, x = 190 + 430 * k, hh = 50 + 70 * k; a.setAttribute('d', `M${x},${300 - hh} Q${x + 40},300 ${x},${300 + hh}`); a.setAttribute('opacity', 1 - k); }));
+  },
+  home: 'Stretch rubber bands of different sizes around an empty box and pluck them. Which ones sound high? Which ones sound low?',
+  quiz: {
+    explorer: [
+      { q: 'What makes a sound?', options: ['Something shaking very fast', 'Something very cold', 'Something very bright'], answer: 0 },
+      { q: 'Which string makes a low sound?', options: ['The long string', 'The short string', 'No string'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is frequency?', options: ['The number of vibrations each second', 'The length of the string', 'How loud a sound is'], answer: 0 },
+      { q: 'How do you get a higher pitch from a string?', options: ['Make the string shorter', 'Make the string longer', 'Pluck it harder'], answer: 0 },
+      { q: 'What does a bigger amplitude sound like?', options: ['Louder', 'Higher', 'Lower'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.18  Density Tower ---------- */
+Lab.register({
+  id: 'tower', title: 'Liquid Tower', emoji: '🍯', color: '#ca8a04', category: 'Water and matter',
+  blurb: 'Stack liquids in layers, then drop things in.',
+  bits: ['💧', '🫒', '🪙', '🍇', '🧊', '🥃'],
+  question: {
+    explorer: 'What happens if we pour honey, water and oil into the same glass? Do they mix?',
+    scientist: 'Some liquids float on other liquids. Can you build a tower of layers, and predict where an object will stop inside it?'
+  },
+  predict: {
+    explorer: { prompt: 'We pour oil and water into a glass. Which one ends up on top?', options: ['The oil', 'The water', 'They mix together'], answer: 0 },
+    scientist: { prompt: 'A grape is denser than water but less dense than honey. Where will it stop?', options: ['On top of the honey layer', 'At the very bottom', 'On the very top'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Drag honey, water and oil into the glass. Then drop things in and see where they stop!',
+    scientist: 'Pour in the three liquids in any order. Then drop in each object and work out why it stops where it does.'
+  },
+  goals: {
+    explorer: [{ id: 'three', label: 'Pour in all 3 liquids' }, { id: 'drop3', label: 'Drop 3 things into the tower' }],
+    scientist: [{ id: 'three', label: 'Build a tower of 3 liquids' }, { id: 'drop4', label: 'Test all 4 objects' }, { id: 'between', label: 'Find an object that floats between two liquids' }]
+  },
+  liquids: { honey: { name: 'honey', d: 1.4, col: '#d97706' }, water: { name: 'water', d: 1.0, col: '#60a5fa' }, oil: { name: 'oil', d: 0.9, col: '#fde047' } },
+  things: [{ id: 'coin', name: 'coin', emoji: '🪙', d: 8.9 }, { id: 'grape', name: 'grape', emoji: '🍇', d: 1.1 }, { id: 'ice', name: 'ice cube', emoji: '🧊', d: 0.92 }, { id: 'wood', name: 'wood block', emoji: '🪵', d: 0.6 }],
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, LQ = this.liquids, BOT = 506, LH = 100;
+    data.dropped = data.dropped || {};
+    let layers = [];
+    const gL = S('g', {}, svg);
+    S('path', { d: `M296,150 V${BOT - 16} Q296,${BOT + 4} 316,${BOT + 4} H484 Q504,${BOT + 4} 504,${BOT - 16} V150`, fill: 'none', stroke: '#475569', 'stroke-width': 8, 'stroke-linecap': 'round' }, svg);
+    const target = () => { [...layers].sort((a, b) => b.d - a.d).forEach((l, i) => { l.ty = BOT - (i + 1) * LH; }); };
+    const order = () => [...layers].sort((a, b) => a.d - b.d);
+    function pour(k) {
+      if (layers.some(l => l.k === k)) return ctx.note(`The ${LQ[k].name} is already in the glass.`);
+      const q = LQ[k], l = { k, d: q.d, name: q.name, y: 160, hh: 0, ty: 0, el: S('rect', { x: 300, width: 200, fill: q.col, opacity: .9 }, gL), tx: sci ? label(gL, 400, 0, `${q.name} ${q.d.toFixed(1)}`, 16, '#1f2a44') : null };
+      layers.push(l); target();
+      const o = order();
+      let msg = sci ? `${q.name.charAt(0).toUpperCase() + q.name.slice(1)} has a density of ${q.d.toFixed(1)} g/cm³. ` : `In goes the ${q.name}! `;
+      if (o.length >= 2) msg += `The ${o[0].name} floats on top. The ${o[o.length - 1].name} sinks to the bottom.`;
+      ctx.note(msg);
+      if (layers.length === 3) { data.three = true; ctx.goal('three'); }
+    }
+    function rest(o) {
+      const passed = [];
+      for (const l of order()) { if (l.d > o.d) return { y: l.ty, sup: l, passed }; passed.push(l); }
+      return { y: BOT - 24, sup: null, passed };
+    }
+    Object.keys(LQ).forEach((k, i) => {
+      const q = LQ[k], g = S('g', { class: 'item', transform: `translate(120,${150 + i * 140})` }, svg);
+      S('rect', { x: -70, y: -48, width: 140, height: 104, rx: 22, fill: '#f1f5f9', stroke: '#cbd5e1', 'stroke-width': 4 }, g);
+      S('ellipse', { cx: 0, cy: -18, rx: 50, ry: 20, fill: q.col, stroke: '#94a3b8', 'stroke-width': 3 }, g);
+      label(g, 0, 40, q.name.toUpperCase(), 19, '#1f2a44');
+      let blob = null;
+      drag(g, svg, {
+        start: p => { if (blob) blob.remove(); blob = S('circle', { cx: p.x, cy: p.y, r: 24, fill: q.col, stroke: '#94a3b8', 'stroke-width': 3, 'pointer-events': 'none' }, svg); },
+        move: p => { blob.setAttribute('cx', p.x); blob.setAttribute('cy', p.y); },
+        end: (p, p0) => { const tap = Math.hypot(p.x - p0.x, p.y - p0.y) < 12, inG = Math.abs(p.x - 400) < 130 && p.y > 110 && p.y < 530; blob.remove(); blob = null; if (tap || inG) pour(k); }
+      });
+    });
+    const items = this.things.map((d, i) => {
+      const it = { ...d, hx: 690, hy: 130 + i * 112, mode: 'shelf' }; it.x = it.hx; it.y = it.hy; it.g = emojiItem(svg, d.emoji, 50);
+      if (sci) label(svg, 690, it.hy + 46, d.d.toFixed(2), 15);
+      drag(it.g, svg, {
+        start: () => { it.mode = 'drag'; },
+        move: p => { it.x = clamp(p.x, 40, 760); it.y = clamp(p.y, 40, 540); },
+        end: () => {
+          if (Math.abs(it.x - 400) > 120 || it.y < 100) { it.mode = 'return'; return; }
+          it.mode = 'in'; it.x = clamp(it.x, 330, 470); it.y = Math.min(it.y, 170);
+          const r = rest(it);
+          data.dropped[it.id] = true;
+          const n = Object.keys(data.dropped).length;
+          if (n >= 3) ctx.goal('drop3'); if (n >= 4) ctx.goal('drop4');
+          if (r.sup && r.passed.length) { data.between = true; ctx.goal('between'); }
+          const how = r.sup ? (r.passed.length ? `sinks through the ${listWords(r.passed.map(l => l.name))} and floats on the ${r.sup.name}` : `floats on top of the ${r.sup.name}`) : (layers.length ? 'sinks all the way to the bottom' : 'falls to the bottom of the empty glass');
+          ctx.note(`The ${it.name} ${how}.` + (sci ? ` Its density is ${it.d.toFixed(2)} g/cm³.` : ''));
+        }
+      });
+      return it;
+    });
+    scene.loop(dt => {
+      layers.forEach(l => {
+        l.y += (l.ty - l.y) * Math.min(1, dt * 4); l.hh += (LH - l.hh) * Math.min(1, dt * 4);
+        l.el.setAttribute('y', l.y.toFixed(1)); l.el.setAttribute('height', l.hh.toFixed(1));
+        if (l.tx) l.tx.setAttribute('y', (l.y + LH / 2 + 6).toFixed(1));
+      });
+      for (const it of items) {
+        if (it.mode === 'in') it.y += clamp(rest(it).y - it.y, -160 * dt, 230 * dt);
+        else if (it.mode === 'return') { const k = Math.min(1, dt * 10); it.x += (it.hx - it.x) * k; it.y += (it.hy - it.y) * k; if (Math.abs(it.x - it.hx) + Math.abs(it.y - it.hy) < 1) it.mode = 'shelf'; }
+        it.g.setAttribute('transform', `translate(${it.x.toFixed(1)},${it.y.toFixed(1)})`);
+      }
+    });
+    if (sci) label(svg, 690, 70, 'density (g/cm³)', 14);
+    controls.append(h('button', { class: 'mini', onclick: () => { layers.forEach(l => { l.el.remove(); if (l.tx) l.tx.remove(); }); layers = []; items.forEach(it => { if (it.mode === 'in') it.mode = 'return'; }); ctx.note('The glass is empty. Build a new tower!'); } }, '🚰 Empty the glass'));
+  },
+  observations(data) {
+    const o = [];
+    if (data.three) o.push('🫒 oil on top, 💧 water in the middle, 🍯 honey at the bottom');
+    if (data.between) o.push('🍇 something floated between two liquids');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The liquids did not mix. They stacked in order of density, with honey at the bottom, water in the middle and oil on top. Each object stopped on the first liquid that was denser than itself.'
+      : 'The liquids made three layers! Honey went to the bottom, water stayed in the middle and oil floated on top. The things you dropped in stopped at different layers.';
+  },
+  why: {
+    explorer: 'Some liquids are heavier for their size than others. Honey is heavy, so it sinks to the bottom. Oil is light, so it floats on top. Water sits in the middle. A thing you drop in sinks until it reaches a liquid that is heavier than it is.',
+    scientist: 'Each liquid has its own density. Honey is the densest, at about 1.4 g/cm³. Water is 1.0 g/cm³ and oil is about 0.9 g/cm³. Less dense liquids float on denser ones, so they stack in layers. An object sinks through every liquid that is less dense than itself, and floats on the first liquid that is denser. That is how a grape can float in the middle of the tower.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    const L = [['#fde047', 'Oil', '0.9', 'light'], ['#60a5fa', 'Water', '1.0', 'middle'], ['#d97706', 'Honey', '1.4', 'heavy']];
+    L.forEach(([c, n, d, w], i) => { S('rect', { x: 280, y: 150 + i * 110, width: 240, height: 110, fill: c }, svg); label(svg, 560, 212 + i * 110, sci ? `${n}: ${d} g/cm³` : `${n}: ${w}`, 24, '#1f2a44', 'start'); });
+    S('path', { d: 'M276,110 V470 Q276,484 290,484 H510 Q524,484 524,470 V110', fill: 'none', stroke: '#475569', 'stroke-width': 8 }, svg);
+    const gr = S('text', { x: 400, 'font-size': 60, 'text-anchor': 'middle', dy: '.35em', text: '🍇' }, svg);
+    label(svg, 400, 550, sci ? 'The grape (1.1 g/cm³) floats on the honey' : 'The grape floats on the honey', 26, '#1f2a44');
+    scene.loop((dt, t) => { const c = t % 5, k = Math.min(1, c / 2); gr.setAttribute('y', 130 + 232 * k * k + (k >= 1 ? Math.sin(t * 3) * 4 : 0)); });
+  },
+  home: 'With a grown-up, slowly pour honey, then water, then cooking oil into a tall glass. Drop in a grape, a coin and a small piece of cork. Where does each one stop?',
+  quiz: {
+    explorer: [
+      { q: 'Which liquid floats on top?', options: ['Oil', 'Honey', 'Water'], answer: 0 },
+      { q: 'Which liquid sinks to the bottom?', options: ['Honey', 'Oil', 'Water'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'Why does oil float on water?', options: ['Oil is less dense than water', 'Oil is thicker than water', 'Oil is warmer than water'], answer: 0 },
+      { q: 'An object has a density of 1.2 g/cm³. Where does it stop in the tower?', options: ['On top of the honey', 'On top of the oil', 'On top of the water'], answer: 0 },
+      { q: 'What decides the order of the layers?', options: ['Their density', 'Their color', 'The order you pour them'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.19  Plant Growth ---------- */
+Lab.register({
+  id: 'plant', title: 'Grow a Plant', emoji: '🌱', color: '#16a34a', category: 'Living things',
+  blurb: 'Find out what a seed needs to grow.',
+  bits: ['💧', '☀️', '🌼', '🫘', '🪴', '🌙'],
+  question: {
+    explorer: 'A tiny seed can become a big plant. What does it need to grow?',
+    scientist: 'Plants need certain things to grow well. How can we test which things really matter?'
+  },
+  predict: {
+    explorer: { prompt: 'What does a seed need to grow?', options: ['Water and sunlight', 'Only darkness', 'Sand and salt'], answer: 0 },
+    scientist: { prompt: 'A seed gets water but is kept in a dark cupboard. What will happen?', options: ['It grows, but pale and weak', 'It does not grow at all', 'It grows better than in the light'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Choose water and sun for your seed. Then tap Next day and watch!',
+    scientist: 'Set up two pots. Give each one water or no water, light or no light. Then grow them for 10 days and compare.'
+  },
+  goals: {
+    explorer: [{ id: 'sprout', label: 'Make the seed sprout' }, { id: 'flower', label: 'Grow a flower' }],
+    scientist: [{ id: 'fair', label: 'Run a fair test: change only one thing' }, { id: 'dark', label: 'Find out what happens without light' }, { id: 'dry', label: 'Find out what happens without water' }]
+  },
+  draw(g, x, base, st) {
+    g.replaceChildren();
+    if (st.box) S('rect', { x: x - 95, y: base - 290, width: 190, height: 390, rx: 14, fill: '#1e293b', opacity: .28 }, g);
+    S('polygon', { points: `${x - 60},${base} ${x + 60},${base} ${x + 44},${base + 80} ${x - 44},${base + 80}`, fill: '#b45309', stroke: '#78350f', 'stroke-width': 4 }, g);
+    S('ellipse', { cx: x, cy: base, rx: 60, ry: 12, fill: st.wet ? '#451a03' : '#a16207' }, g);
+    if (st.h <= 0.05) { S('ellipse', { cx: x, cy: base - 3, rx: 9, ry: 6, fill: '#fde68a', stroke: '#a16207', 'stroke-width': 2 }, g); return; }
+    const dr = st.droop || 0, H = st.h * 24, lean = dr * H * 0.7 + (st.pale ? H * 0.28 : 0), col = st.pale ? '#d9f99d' : dr ? '#a3a380' : '#16a34a', tx = x + lean, ty = base - H * (1 - dr * 0.45);
+    S('path', { d: `M${x},${base} Q${x},${base - H * 0.7} ${tx},${ty}`, fill: 'none', stroke: col, 'stroke-width': st.pale ? 5 : 9, 'stroke-linecap': 'round' }, g);
+    const n = Math.floor(st.h / 1.5);
+    for (let i = 1; i <= n; i++) {
+      const f = i / (n + 1), px = x + lean * f * f, py = base - (base - ty) * f, s = i % 2 ? 1 : -1, sz = st.pale ? 12 : 20;
+      S('ellipse', { cx: px + s * sz, cy: py, rx: sz, ry: sz * 0.45, fill: col, stroke: '#0002', 'stroke-width': 2, transform: `rotate(${s * -25 + dr * s * 40} ${px} ${py})` }, g);
+    }
+    if (st.flower) S('text', { x: tx, y: ty - 4, 'font-size': 50, 'text-anchor': 'middle', text: '🌼' }, g);
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, self = this;
+    S('rect', { x: 0, y: 520, width: 800, height: 80, fill: '#e7e5e4' }, svg);
+    const on = [{ v: true, t: 'Yes' }, { v: false, t: 'No' }];
+    if (!sci) {
+      const g = S('g', {}, svg), sun = S('text', { x: 120, y: 130, 'font-size': 100, 'text-anchor': 'middle', text: '' }, svg), dayT = label(svg, 400, 60, 'Day 1', 30, '#1f2a44');
+      const st = { h: 0, pale: false, droop: 0, flower: false, wet: false }; let water = false, light = false, day = 1;
+      const show = () => { st.wet = water; st.box = !light; sun.textContent = light ? '☀️' : ''; self.draw(g, 400, 440, st); dayT.textContent = 'Day ' + day; };
+      controls.append(seg('💧 Water', on, false, v => { water = v; show(); }), seg('☀️ Sun', on, false, v => { light = v; show(); }),
+        h('button', { class: 'mini', onclick: () => {
+          day++; const was = st.h;
+          if (water && light) { st.h = Math.min(10, st.h + 1.25); st.droop = 0; st.pale = false; }
+          else if (water) { st.h = Math.min(10, st.h + 0.9); st.droop = 0; st.pale = true; }
+          else if (st.h > 0) st.droop = Math.min(1, st.droop + 0.5);
+          st.flower = st.h >= 7 && !st.pale && !st.droop; show();
+          if (st.h > 0) ctx.goal('sprout'); if (st.flower) { data.flower = true; ctx.goal('flower'); }
+          if (!water) ctx.note(st.h > 0 ? 'Oh no, the plant is drooping. It is thirsty! Give it water.' : 'Nothing happens. The seed is dry. It needs water to wake up.');
+          else if (!was) ctx.note(light ? 'Look! A tiny green shoot. The seed has sprouted!' : 'The seed sprouted, but it is pale. It needs sunlight to turn green.');
+          else if (!light) ctx.note('The plant grows, but it is pale and thin. It needs sunlight!');
+          else ctx.note(st.flower ? 'A flower! Water and sunshine made the plant big and strong.' : 'The plant is growing taller and greener. Keep going!');
+        } }, '🌙 Next day'));
+      show(); return;
+    }
+    data.runs = data.runs || [];
+    const pots = [{ n: 'A', x: 250, water: true, light: true }, { n: 'B', x: 550, water: true, light: true }];
+    const final = p => p.water && p.light ? { h: 9, flower: true } : p.water ? { h: 6.5, pale: true } : { h: 0 };
+    const text = p => p.water && p.light ? 'grew tall and green, to 22 cm, and made a flower' : p.water ? 'grew to 16 cm, but it is pale and weak' : 'did not sprout, because a seed needs water to start growing';
+    pots.forEach(p => { p.g = S('g', {}, svg); p.lab = label(svg, p.x, 570, '', 20, '#1f2a44'); p.cm = label(svg, p.x, 80, '', 24, '#1f2a44'); });
+    const dayT = label(svg, 400, 40, 'Day 0', 26, '#1f2a44');
+    let run = null;
+    const show = k => pots.forEach(p => {
+      const f = final(p); self.draw(p.g, p.x, 440, { h: f.h * k, pale: f.pale, flower: f.flower && k >= 1, wet: p.water, box: !p.light });
+      p.lab.textContent = `Pot ${p.n}: ${p.water ? '💧 water' : 'no water'}, ${p.light ? '☀️ light' : 'dark'}`; p.cm.textContent = k > 0 ? Math.round(f.h * 2.45 * k) + ' cm' : '';
+    });
+    const reset = () => { if (!run) { dayT.textContent = 'Day 0'; show(0); } };
+    scene.loop(dt => {
+      if (!run) return;
+      run.t = Math.min(1, run.t + dt / 4); show(run.t); dayT.textContent = 'Day ' + Math.round(run.t * 10);
+      if (run.t < 1) return; run = null;
+      const [a, b] = pots, diff = (a.water !== b.water) + (a.light !== b.light);
+      data.runs.push(pots.map(p => `Pot ${p.n} ${p.water ? '💧' : '🚫💧'} ${p.light ? '☀️' : '🌑'} → ${Math.round(final(p).h * 2.45)} cm`).join('  |  '));
+      if (diff === 1) { data.fair = true; ctx.goal('fair'); }
+      if (pots.some(p => p.water && !p.light)) { data.dark = true; ctx.goal('dark'); }
+      if (pots.some(p => !p.water)) { data.dry = true; ctx.goal('dry'); }
+      ctx.note(`Pot A ${text(a)}. Pot B ${text(b)}. ` + (diff === 1 ? 'That was a fair test. Only one thing was different, so you know what caused the change.' : diff === 0 ? 'Both pots were treated the same, so there is nothing to compare. Change one thing.' : 'Two things were different, so you cannot tell which one caused the change.'));
+    });
+    pots.forEach(p => controls.append(seg(`Pot ${p.n} 💧`, on, true, v => { p.water = v; reset(); }), seg('☀️', on, true, v => { p.light = v; reset(); })));
+    controls.append(h('button', { class: 'mini', onclick: () => { if (!run) run = { t: 0 }; } }, '▶ Grow for 10 days'));
+    show(0);
+  },
+  observations(data, lv) {
+    return lv === 'scientist' ? (data.runs || []).slice(-4) : ['💧 + ☀️ → 🌼', '💧 only → pale plant', 'no 💧 → no growth'];
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'With water and light, the plant grew tall, green and strong. With water but no light, it grew pale and weak. With no water, the seed did not sprout at all.'
+      : 'With water and sunshine, the seed sprouted and grew into a flower. Without water it could not grow. Without sun it was pale and thin.';
+  },
+  why: {
+    explorer: 'A seed is a baby plant waiting to grow. Water wakes it up. Then it needs sunlight to make its own food in its green leaves. With water and light, it grows big and strong. Without water, it dries out.',
+    scientist: 'A seed holds a tiny plant and a store of food. Water starts it growing. This is called germination. Then the seedling needs light. Its green leaves use light, water and carbon dioxide from the air to make sugar. This is called photosynthesis. In the dark, a seedling stretches upward, looking for light. It stays pale and weak, and it stops growing when the food in the seed runs out. Changing only one thing at a time is called a fair test. It shows exactly what caused the difference.'
+  },
+  whyAnim({ svg, sci }) {
+    const g = S('g', {}, svg); this.draw(g, 400, 420, { h: 9, flower: true, wet: true });
+    S('text', { x: 120, y: 130, 'font-size': 100, 'text-anchor': 'middle', text: '☀️' }, svg);
+    S('line', { x1: 170, y1: 150, x2: 370, y2: 300, stroke: '#facc15', 'stroke-width': 8, class: 'ray' }, svg); label(svg, 220, 250, 'light', 22, '#a16207');
+    S('line', { x1: 400, y1: 560, x2: 400, y2: 450, stroke: '#3b82f6', 'stroke-width': 8, class: 'ray' }, svg); label(svg, 470, 560, 'water', 22, '#1d4ed8');
+    if (sci) {
+      S('line', { x1: 660, y1: 250, x2: 450, y2: 300, stroke: '#94a3b8', 'stroke-width': 8, class: 'ray' }, svg); label(svg, 660, 235, 'carbon dioxide in', 20);
+      S('line', { x1: 450, y1: 350, x2: 660, y2: 400, stroke: '#22c55e', 'stroke-width': 8, class: 'ray' }, svg); label(svg, 660, 430, 'oxygen out', 20, '#15803d');
+    }
+    label(svg, 400, 60, sci ? 'Photosynthesis: leaves make sugar from light' : 'Leaves use sunlight to make food', 26, '#1f2a44');
+  },
+  home: 'Put a bean on wet kitchen paper inside a clear glass. Keep it by a window and keep the paper damp. Watch for the root and the shoot over the next week.',
+  quiz: {
+    explorer: [
+      { q: 'What wakes up a seed?', options: ['Water', 'Darkness', 'Wind'], answer: 0 },
+      { q: 'Why do plants need sunlight?', options: ['To make their food', 'To stay dry', 'To sleep'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is it called when a seed starts to grow?', options: ['Germination', 'Evaporation', 'Reflection'], answer: 0 },
+      { q: 'What do leaves make during photosynthesis?', options: ['Sugar', 'Soil', 'Seeds'], answer: 0 },
+      { q: 'What makes a test fair?', options: ['Changing only one thing at a time', 'Changing everything at once', 'Doing it very quickly'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.20  Day and Night ---------- */
+Lab.register({
+  id: 'daynight', title: 'Day and Night', emoji: '🌍', color: '#0284c7', category: 'Earth and space',
+  blurb: 'Spin the Earth and make the Sun rise and set.',
+  bits: ['☀️', '🌙', '⭐', '🏠', '🌅', '🕛'],
+  question: {
+    explorer: 'In the day the Sun is in the sky. At night it is gone. Where does it go?',
+    scientist: 'The Sun seems to cross the sky every day. Is the Sun moving, or are we?'
+  },
+  predict: {
+    explorer: { prompt: 'Why does it get dark at night?', options: ['The Earth turns us away from the Sun', 'The Sun switches off', 'Clouds cover the Sun'], answer: 0 },
+    scientist: { prompt: 'It is noon where you live. What time is it on the exact opposite side of the Earth?', options: ['Midnight', 'Noon', 'Sunrise'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Put your finger on the Earth and turn it around. Watch the little house and the sky!',
+    scientist: 'Turn the Earth with your finger. Watch the clock at the house and the sky above it. The island is on the opposite side.'
+  },
+  goals: {
+    explorer: [{ id: 'day', label: 'Turn the house into the sunlight' }, { id: 'night', label: 'Turn the house back into the night' }, { id: 'full', label: 'Make one full turn: a whole day' }],
+    scientist: [{ id: 'sunrise', label: 'Find sunrise at the house (6:00)' }, { id: 'opp', label: 'Make it noon at the island' }, { id: 'full', label: 'Make one full turn: 24 hours' }]
+  },
+  earth(svg, cx, cy, r) {
+    const g = S('g', { class: 'item' }, svg);
+    S('circle', { r, fill: '#38bdf8', stroke: '#0369a1', 'stroke-width': 4 }, g);
+    [[-40, -50, 46, 30], [45, 20, 36, 48], [-30, 62, 30, 20], [58, -66, 22, 16]].forEach(([x, y, rx, ry]) => S('ellipse', { cx: x, cy: y, rx, ry, fill: '#4ade80' }, g));
+    S('path', { d: `M${cx},${cy - r} A${r},${r} 0 0 1 ${cx},${cy + r} Z`, fill: '#020617', opacity: .6, 'pointer-events': 'none' }, svg);
+    const mark = e => S('text', { 'font-size': 40, 'text-anchor': 'middle', dy: '.35em', 'pointer-events': 'none', text: e }, svg);
+    const m1 = mark('🏠'), m2 = mark('');
+    const at = (m, a) => { const q = a * Math.PI / 180; m.setAttribute('x', cx + (r + 28) * Math.cos(q)); m.setAttribute('y', cy + (r + 28) * Math.sin(q)); };
+    return { g, m2, set(a) { g.setAttribute('transform', `translate(${cx},${cy}) rotate(${a.toFixed(1)})`); at(m1, a); at(m2, a + 180); } };
+  },
+  build(ctx) {
+    const { svg, sci, data } = ctx, CX = 400, CY = 330, R = 120;
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0b1026' }, svg);
+    S('text', { x: 70, y: 330, 'font-size': 120, 'text-anchor': 'middle', dy: '.35em', text: '☀️' }, svg);
+    [-70, 0, 70].forEach(dy => S('line', { x1: 140, y1: CY + dy, x2: CX - R - 44, y2: CY + dy, stroke: '#fde047', 'stroke-width': 5, class: 'ray', opacity: .7 }, svg));
+    const E = this.earth(svg, CX, CY, R); if (sci) E.m2.textContent = '🏝️';
+    const sky = S('rect', { x: 590, y: 40, width: 190, height: 130, rx: 14, stroke: '#e2e8f0', 'stroke-width': 4 }, svg);
+    const sun = S('circle', { r: 16, fill: '#fde047' }, svg), stars = S('text', { x: 685, y: 115, 'font-size': 34, 'text-anchor': 'middle', text: '✨ 🌙 ✨' }, svg);
+    S('rect', { x: 590, y: 150, width: 190, height: 20, fill: '#166534' }, svg);
+    label(svg, 685, 30, 'Sky at the house', 16, '#e2e8f0');
+    const phaseT = label(svg, 685, 200, '', 22, '#e2e8f0'), clock = sci ? label(svg, 400, 560, '', 24, '#e2e8f0') : null;
+    let a = 60, cum = 0, phase = '', sawDay = false;
+    const names = { sunrise: 'Sunrise', day: 'Daytime', sunset: 'Sunset', night: 'Night' };
+    function update(say) {
+      E.set(a);
+      const hour = ((((180 - a) / 15 + 12) % 24) + 24) % 24;
+      const ph = hour >= 5 && hour < 8 ? 'sunrise' : hour >= 8 && hour < 16 ? 'day' : hour >= 16 && hour < 19 ? 'sunset' : 'night';
+      sky.setAttribute('fill', { sunrise: '#fdba74', day: '#7dd3fc', sunset: '#fb923c', night: '#0f172a' }[ph]);
+      const up = hour >= 6 && hour <= 18, k = (hour - 6) / 12;
+      sun.setAttribute('opacity', up ? 1 : 0); sun.setAttribute('cx', 606 + 158 * k); sun.setAttribute('cy', 148 - Math.sin(k * Math.PI) * 88);
+      stars.setAttribute('opacity', ph === 'night' ? 1 : 0); phaseT.textContent = names[ph];
+      if (clock) clock.textContent = `Time at the house: ${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor(hour % 1 * 60)).padStart(2, '0')}`;
+      if (!say) { phase = ph; return; }
+      if (Math.abs(cum) >= 360 && !data.full) { data.full = true; ctx.goal('full'); ctx.note(sci ? 'One full turn! The Earth takes 24 hours to rotate once. That is one day.' : 'One whole turn! That is one day and one night.'); return; }
+      if (sci && Math.abs(hour - 6) < 0.35 && !data.sunrise) { data.sunrise = true; ctx.goal('sunrise'); ctx.note('It is 6:00 at the house. It is just turning into the light. That is sunrise. The Sun did not move. The Earth turned!'); phase = ph; return; }
+      if (sci && (hour < 0.5 || hour > 23.5) && !data.opp) { data.opp = true; ctx.goal('opp'); ctx.note('It is midnight at the house, and noon at the island on the opposite side. Different places have different times.'); phase = ph; return; }
+      if (ph === phase) return; phase = ph;
+      if (ph === 'day') { sawDay = true; data.day = true; ctx.goal('day'); }
+      if (ph === 'night' && sawDay) { data.night = true; ctx.goal('night'); }
+      ctx.note({ sunrise: 'Good morning! The house is turning into the light. The Sun comes up.', day: 'It is daytime. The house faces the Sun.', sunset: 'The house is turning away from the Sun. The Sun goes down.', night: 'It is night. The house faces away from the Sun, into the dark.' }[ph]);
+    }
+    drag(E.g, svg, { move: p => {
+      if (Math.hypot(p.x - CX, p.y - CY) < 20) return;
+      const na = Math.atan2(p.y - CY, p.x - CX) * 180 / Math.PI; let d = a - na;
+      d = ((d + 540) % 360) - 180; cum += d; a = na; update(true);
+    } });
+    update(false);
+  },
+  observations(data) {
+    const o = [];
+    if (data.day) o.push('☀️ house faces the Sun → day');
+    if (data.night) o.push('🌙 house faces away → night');
+    if (data.sunrise) o.push('🌅 6:00 → sunrise');
+    if (data.opp) o.push('🏝️ noon on one side, midnight on the other');
+    if (data.full) o.push('🌍 one full turn = one day');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The Sun stayed still. As the Earth rotated, the house moved from night into sunrise, through noon to sunset, and back into night. One full rotation took 24 hours. The opposite side of the Earth always had the opposite time.'
+      : 'When the house faced the Sun, it was day. When the house turned away from the Sun, it was night. One whole turn made one day and one night.';
+  },
+  why: {
+    explorer: 'The Earth is a giant ball that spins like a top. The Sun shines on one side only. When your home faces the Sun, it is day. When your home turns away from the Sun, it is night. One full spin takes one whole day.',
+    scientist: 'The Earth rotates once on its axis every 24 hours. The Sun always lights the half of the Earth that faces it. As the Earth turns, your town moves into the light at sunrise and out of it at sunset. The Sun only seems to move across the sky. It appears to rise in the east because the Earth spins toward the east. Different places face the Sun at different times. That is why the world has time zones.'
+  },
+  whyAnim({ svg, scene }) {
+    S('rect', { x: 0, y: 0, width: 800, height: 600, fill: '#0b1026' }, svg);
+    S('text', { x: 80, y: 300, 'font-size': 130, 'text-anchor': 'middle', dy: '.35em', text: '☀️' }, svg);
+    [-80, 0, 80].forEach(dy => S('line', { x1: 160, y1: 300 + dy, x2: 250, y2: 300 + dy, stroke: '#fde047', 'stroke-width': 6, class: 'ray' }, svg));
+    const E = this.earth(svg, 440, 300, 140);
+    label(svg, 330, 520, 'Day side', 28, '#fde047'); label(svg, 560, 520, 'Night side', 28, '#93c5fd');
+    label(svg, 440, 70, 'The Earth spins. The Sun stays still.', 28, '#e2e8f0');
+    scene.loop((dt, t) => E.set(-t * 45 % 360));
+  },
+  home: 'In a dark room, shine a flashlight on a ball. Put a sticker on the ball to show your home. Slowly turn the ball. When is the sticker in the light?',
+  quiz: {
+    explorer: [
+      { q: 'What makes day and night?', options: ['The Earth spinning', 'The Sun switching off', 'The Moon covering the Sun'], answer: 0 },
+      { q: 'When is it day at your home?', options: ['When your home faces the Sun', 'When your home faces away from the Sun', 'When it rains'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'How long does one rotation of the Earth take?', options: ['24 hours', '12 hours', '365 days'], answer: 0 },
+      { q: 'Why does the Sun seem to move across the sky?', options: ['Because the Earth is turning', 'Because the Sun orbits the Earth', 'Because of the wind'], answer: 0 },
+      { q: 'Why do different countries have different times?', options: ['They face the Sun at different times', 'Their clocks are broken', 'They are at different heights'], answer: 0 }
     ]
   }
 });

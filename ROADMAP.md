@@ -8,15 +8,11 @@ Each group is written, tested and published as one update. Tick a group when it 
 - [x] **Group 1** (2): Magnets, Volcano
 - [x] **Group 2** (5): Shadows, Rainbow Prism, Mirror Bounce, Ice Water Steam, Disappearing Act (dissolving)
 - [x] **Group 3** (5): Ramp Race, Swing Time (pendulum), Seesaw Balance, Balloon Rocket, Feather and Ball
+- [x] **Group 4** (5): Sticky Balloon (static electricity), String Sounds, Liquid Tower (density), Grow a Plant, Day and Night
 
 ## Planned groups
 
-- [ ] **Group 4** (5 experiments) — electricity, sound, nature and space
-  1. **Static Electricity** — rub a balloon on hair, then pick up paper bits. Scientist: charges, more rubbing means more pull.
-  2. **Sound Waves** — pluck strings of different lengths. Scientist: see the wave, pitch (frequency) and loudness (amplitude).
-  3. **Density Tower** — pour honey, water and oil into a glass; they stack in layers. Scientist: drop objects in and see where each one stops.
-  4. **Plant Growth** — give a seed water and light and watch it grow. Scientist: change one thing at a time, a fair test.
-  5. **Day and Night** — spin the Earth next to the Sun. Scientist: time zones, why the Sun seems to rise in the east.
+None yet. All 20 planned experiments are live. Pick the next group from the ideas below (5 per group works well).
 
 ## Later ideas (Group 5 and beyond)
 
