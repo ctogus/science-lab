@@ -7,15 +7,9 @@ Each group is written, tested and published as one update. Tick a group when it 
 - [x] **Pilot** (3): Sink or Float?, Color Mixing, Light the Bulb
 - [x] **Group 1** (2): Magnets, Volcano
 - [x] **Group 2** (5): Shadows, Rainbow Prism, Mirror Bounce, Ice Water Steam, Disappearing Act (dissolving)
+- [x] **Group 3** (5): Ramp Race, Swing Time (pendulum), Seesaw Balance, Balloon Rocket, Feather and Ball
 
 ## Planned groups
-
-- [ ] **Group 3** (5 experiments) — forces and motion
-  1. **Ramp Race** — roll a car down a ramp; change the height and the surface. Scientist: measure distance, friction.
-  2. **Pendulum** — pull and release a swinging ball. Scientist: change length and weight, time 10 swings; only length matters.
-  3. **Lever and Seesaw** — balance animals on a seesaw. Scientist: weight × distance on each side.
-  4. **Balloon Rocket** — blow up a balloon on a string and let go. Scientist: more air goes farther, action and reaction.
-  5. **Gravity Drop** — drop a feather and a ball, in air and with the air pumped out. Scientist: air resistance, not weight, makes the difference.
 
 - [ ] **Group 4** (5 experiments) — electricity, sound, nature and space
   1. **Static Electricity** — rub a balloon on hair, then pick up paper bits. Scientist: charges, more rubbing means more pull.

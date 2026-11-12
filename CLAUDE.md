@@ -54,11 +54,12 @@ If you add a new file, also add it to `FILES` in `sw.js`.
 
 ## Testing
 
-1. Start the local server from `.claude/launch.json` if it exists, or serve the repo folder with `py -m http.server <port>`, and open it in the Browser pane.
+1. Serve the repo folder with `py -m http.server 8792 --directory <repo folder>` (run it in the background) and open `http://localhost:8792/index.html` in the Browser pane. `preview_start` has been unreliable here: it served a different folder.
 2. The Browser pane often does not animate while hidden (`requestAnimationFrame` stalls and screenshots time out). For logic tests, replace it in the page: `window.requestAnimationFrame = f => setTimeout(() => f(performance.now()), 16)` and re-render with `App.go(step)`.
 3. Drive the app from JavaScript: set a test profile in `Store.data`, then `App.open(Lab.list[i])`, `App.go(2)`. Simulate drags by dispatching `pointerdown` on the element and `pointermove` / `pointerup` on `window`. Read `.note`, `.goals li` and `App.data` to check results.
 4. For every new experiment check both levels: all goals can be completed, Results and Why text read correctly, the quiz ends with a star, and the console has no errors.
 5. Remove the test profile afterwards (`localStorage.removeItem('sciencelab.v1')`).
+6. `.claude/test-helpers.js` (local only, not in the repo) holds ready-made helpers as `window.T`: load it with a script tag, write the group's test as a second script that fills `T.out`, start it without awaiting (JavaScript calls time out after 45 s), then read `T.out` later. If the file is missing, recreate it from this description.
 
 A second opinion from a subagent on science accuracy and reading level is worth it for each new group.
 

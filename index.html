@@ -324,7 +324,7 @@ const Voice = {
       .replace(/ ?°C/g, ' degrees Celsius').replace(/°/g, ' degrees').replace(/(\d) s\b/g, '$1 seconds')
       .replace(/(\d) ml\b/g, '$1 milliliters').replace(/(\d) cm\b/g, '$1 centimeters').replace(/→/g, ' makes ')
       .replace(/(\d) V\b/g, '$1 volts').replace(/(\d) A\b/g, '$1 amps')
-      .replace(/÷/g, ' divided by ').replace(/=/g, ' equals ')
+      .replace(/÷/g, ' divided by ').replace(/×/g, ' times ').replace(/=/g, ' equals ')
       .replace(/\s\+\s/g, ' plus ').replace(/−/g, 'minus').replace(/\+/g, 'plus')
       .replace(/➜|↺/g, '');
   },
@@ -2161,6 +2161,529 @@ Lab.register({
       { q: 'What do we call sugar mixed evenly into water?', options: ['A solution', 'A solid', 'A shadow'], answer: 0 },
       { q: 'How can you make sugar dissolve faster?', options: ['Use hot water and stir', 'Use cold water', 'Add sand'], answer: 0 },
       { q: 'What does saturated mean?', options: ['No more can dissolve', 'The water is frozen', 'The water is empty'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.11  Ramp Race ---------- */
+Lab.register({
+  id: 'ramp', title: 'Ramp Race', emoji: '🏎️', color: '#f43f5e', category: 'Forces and motion',
+  blurb: 'Roll a car down a ramp. How far will it go?',
+  bits: ['🚩', '⛰️', '🧱', '🏁', '📏', '🛞'],
+  question: {
+    explorer: 'A toy car rolls down a ramp and across the floor. What makes it go far?',
+    scientist: 'The same car can roll a long way or stop quickly. How do the height of the ramp and the kind of floor change the distance?'
+  },
+  predict: {
+    explorer: { prompt: 'Which ramp makes the car go farther?', options: ['The high ramp', 'The low ramp'], answer: 0 },
+    scientist: { prompt: 'The car rolls onto carpet instead of a smooth floor. What happens?', options: ['It stops sooner', 'It rolls farther', 'Nothing changes'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Tap the car to let it go! Then try a higher ramp and a different floor.',
+    scientist: 'Tap the car to release it. Change only one thing at a time, the ramp or the floor, and compare the distances.'
+  },
+  goals: {
+    explorer: [{ id: 'go', label: 'Let the car roll' }, { id: 'high', label: 'Try the high ramp' }, { id: 'rough', label: 'Try the carpet' }],
+    scientist: [{ id: 'three', label: 'Test all 3 ramp heights on the same floor' }, { id: 'floors', label: 'Test 2 floors with the same ramp' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.runs = data.runs || [];
+    const G = 430, RX = 260, MU = { smooth: .25, carpet: .5, sand: 1 }, FN = { smooth: 'smooth floor', carpet: 'carpet', sand: 'sand' }, FC = { smooth: '#e2e8f0', carpet: '#fca5a5', sand: '#fde68a' }, HN = ['', 'Low', 'Medium', 'High'];
+    let hgt = 1, floor = 'smooth', run = null;
+    S('rect', { x: 0, y: G + 26, width: 800, height: 150, fill: '#f1f5f9' }, svg);
+    const floorEl = S('rect', { x: RX, y: G, width: 540, height: 26, fill: FC.smooth, stroke: '#94a3b8', 'stroke-width': 2 }, svg);
+    S('rect', { x: 0, y: G, width: RX, height: 26, fill: '#e2e8f0', stroke: '#94a3b8', 'stroke-width': 2 }, svg);
+    for (let cm = 0; cm <= 120; cm += 20) { S('line', { x1: RX + cm * 4, y1: G + 26, x2: RX + cm * 4, y2: G + 44, stroke: '#475569', 'stroke-width': 3 }, svg); if (sci) label(svg, RX + cm * 4, G + 66, cm + (cm === 120 ? ' cm' : ''), 16); }
+    const ramp = S('polygon', { fill: '#c89b6a', stroke: '#92400e', 'stroke-width': 3 }, svg);
+    const flag = S('text', { y: G - 6, 'font-size': 44, 'text-anchor': 'middle', opacity: 0, text: '🚩' }, svg);
+    const car = S('g', { class: 'item' }, svg);
+    S('circle', { r: 44, fill: 'transparent' }, car);
+    S('text', { 'font-size': 58, 'text-anchor': 'middle', dy: '.35em', text: '🏎️' }, S('g', { transform: 'scale(-1,1)' }, car));
+    const read = label(svg, 400, 60, 'Tap the car!', 26, '#1f2a44');
+    const geo = () => { const ty = G - 70 * hgt; return { ty, Lr: Math.hypot(200, G - ty), ang: Math.atan2(G - ty, 200) * 180 / Math.PI }; };
+    function put(s, x) {
+      const g = geo();
+      if (x == null) { const f = s / g.Lr; car.setAttribute('transform', `translate(${60 + 200 * f},${g.ty + (G - g.ty) * f - 26}) rotate(${g.ang.toFixed(1)})`); }
+      else car.setAttribute('transform', `translate(${x.toFixed(1)},${G - 24})`);
+    }
+    function reset() { run = null; const g = geo(); ramp.setAttribute('points', `60,${G} 60,${g.ty} ${RX},${G}`); put(g.Lr * 0.14); flag.setAttribute('opacity', 0); floorEl.setAttribute('fill', FC[floor]); }
+    function finish() {
+      const cm = Math.round(run.d / 4), prev = data.runs[data.runs.length - 1];
+      data.runs.push({ h: hgt, floor, cm });
+      flag.setAttribute('x', RX + run.d + 10); flag.setAttribute('opacity', 1); read.textContent = sci ? `The car rolled ${cm} cm` : 'It stopped here!';
+      run.over = true; scene.after(2600, () => { if (run && run.over) { reset(); read.textContent = 'Tap the car!'; } });
+      ctx.goal('go'); if (hgt === 3) ctx.goal('high'); if (floor !== 'smooth') ctx.goal('rough');
+      if (new Set(data.runs.filter(r => r.floor === floor).map(r => r.h)).size === 3) ctx.goal('three');
+      if (new Set(data.runs.filter(r => r.h === hgt).map(r => r.floor)).size >= 2) ctx.goal('floors');
+      if (sci) {
+        let why = '';
+        if (prev && prev.h !== hgt && prev.floor === floor) why = hgt > prev.h ? ' A higher ramp gives the car more energy, so it rolled farther.' : ' A lower ramp gives the car less energy, so it did not roll as far.';
+        else if (prev && prev.h === hgt && prev.floor !== floor) why = MU[floor] > MU[prev.floor] ? ` The ${FN[floor]} has more friction, so the car stopped sooner.` : ` The ${FN[floor]} has less friction, so the car rolled farther.`;
+        ctx.note(`${HN[hgt]} ramp, ${FN[floor]}: the car rolled ${cm} cm.` + why);
+      } else {
+        ctx.note((!prev ? 'Zoom! The car rolled down the ramp and across the floor.' : cm > prev.cm ? 'The car went farther than last time!' : cm < prev.cm ? 'The car did not go as far this time.' : 'The car went just as far as before.')
+          + (floor !== 'smooth' ? ' The carpet rubs on the wheels and slows the car down.' : hgt === 3 ? ' A high ramp makes the car very fast.' : ''));
+      }
+    }
+    car.addEventListener('pointerdown', e => {
+      e.preventDefault(); if (run) return;
+      const g = geo(), d = 160 * hgt * 0.25 / MU[floor], A = MU[floor] * 800, v0 = Math.sqrt(2 * A * d);
+      run = { s: g.Lr * 0.14, v: 0, a: v0 * v0 / (2 * g.Lr * 0.86), x: null, d, A, v0, Lr: g.Lr }; read.textContent = '';
+    });
+    scene.loop(dt => {
+      if (!run || run.over) return;
+      if (run.x == null) { run.v += run.a * dt; run.s += run.v * dt; if (run.s >= run.Lr) { run.x = RX; run.v = run.v0; } else put(run.s); }
+      if (run.x != null) { run.v -= run.A * dt; run.x += Math.max(0, run.v) * dt; if (run.v <= 0 || run.x >= RX + run.d) { run.x = RX + run.d; put(0, run.x); finish(); } else put(0, run.x); }
+    });
+    const floors = [{ v: 'smooth', t: 'Smooth' }, { v: 'carpet', t: 'Carpet' }]; if (sci) floors.push({ v: 'sand', t: 'Sand' });
+    controls.append(seg('⛰️ Ramp', [1, 2, 3].map(v => ({ v, t: HN[v] })), 1, v => { hgt = v; reset(); }), seg('Floor', floors, 'smooth', v => { floor = v; reset(); }));
+    reset();
+  },
+  observations(data, lv) {
+    return (data.runs || []).slice(-8).map(r => `${['', 'Low', 'Medium', 'High'][r.h]} ramp, ${r.floor}` + (lv === 'scientist' ? `: ${r.cm} cm` : r.cm >= 80 ? ': far' : r.cm >= 40 ? ': medium' : ': short'));
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'The higher the ramp, the farther the car rolled. Doubling the height about doubled the distance. On rougher floors the car stopped sooner, because friction was greater.'
+      : 'The car rolled farther from the high ramp. On the carpet it stopped sooner than on the smooth floor.';
+  },
+  why: {
+    explorer: 'A high ramp makes the car go fast, so it rolls a long way. A rough floor, like carpet, rubs against the wheels and slows the car down. This rubbing is called friction.',
+    scientist: 'At the top of the ramp the car has stored energy, called potential energy. The higher the ramp, the more energy it has. Rolling down turns it into energy of motion, called kinetic energy. On the floor, friction slowly turns that energy into heat, and the car stops. Rough surfaces have more friction, so the car stops sooner. Twice the height gives twice the energy, so the car rolls about twice as far.'
+  },
+  whyAnim({ svg, scene }) {
+    const rows = [[190, '#e2e8f0', 'Smooth floor: little friction', 520], [400, '#fca5a5', 'Carpet: lots of friction', 240]];
+    const cars = rows.map(([y, c, t, d]) => {
+      S('rect', { x: 60, y, width: 680, height: 22, fill: c, stroke: '#94a3b8', 'stroke-width': 2 }, svg); label(svg, 400, y - 90, t, 26, '#1f2a44');
+      const g = S('g', {}, svg); S('text', { 'font-size': 60, 'text-anchor': 'middle', text: '🏎️' }, S('g', { transform: 'scale(-1,1)' }, g)); return { g, y, d };
+    });
+    scene.loop((dt, t) => { const c = (t % 4) / 2.2; cars.forEach(k => { const u = Math.min(1, c), e = 1 - (1 - u) * (1 - u); k.g.setAttribute('transform', `translate(${110 + k.d * e},${k.y - 8})`); }); });
+  },
+  home: 'Lean a big book or a board on a pile of books to make a ramp. Roll a toy car down it. Try a higher pile. Then put a towel on the floor and try again.',
+  quiz: {
+    explorer: [
+      { q: 'Which ramp makes the car go farthest?', options: ['The high ramp', 'The low ramp', 'No ramp'], answer: 0 },
+      { q: 'What slows the car down on the carpet?', options: ['Rubbing, called friction', 'The wind', 'The color'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What force slows the car on the floor?', options: ['Friction', 'Magnetism', 'Electricity'], answer: 0 },
+      { q: 'What kind of energy does the car have at the top of the ramp?', options: ['Potential energy', 'Sound energy', 'No energy'], answer: 0 },
+      { q: 'You double the height of the ramp. About how far does the car roll?', options: ['About twice as far', 'The same distance', 'Half as far'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.12  Pendulum ---------- */
+Lab.register({
+  id: 'pendulum', title: 'Swing Time', emoji: '⏱️', color: '#8b5cf6', category: 'Forces and motion',
+  blurb: 'Pull a ball on a string and let it swing.',
+  bits: ['🕰️', '🎾', '🧵', '🛝', '⚖️', '🔔'],
+  question: {
+    explorer: 'A ball on a string swings back and forth. What makes it swing fast or slow?',
+    scientist: 'A pendulum swings with a steady beat. What changes the time of one swing: the length of the string, or the weight of the ball?'
+  },
+  predict: {
+    explorer: { prompt: 'Which one swings faster?', options: ['The short string', 'The long string', 'They are the same'], answer: 0 },
+    scientist: { prompt: 'You swap the light ball for a heavy one. What happens to the time of one swing?', options: ['It stays the same', 'It gets longer', 'It gets shorter'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Pull the ball to the side and let go! Count the swings.',
+    scientist: 'Pull the ball aside and release it. The stopwatch times 5 full swings. Change the length, then change the ball, and compare.'
+  },
+  goals: {
+    explorer: [{ id: 'swing', label: 'Pull the ball and let it go' }, { id: 'count', label: 'Watch 5 full swings' }, { id: 'short', label: 'Do 5 swings with the short string' }],
+    scientist: [{ id: 'len2', label: 'Time 5 swings with 2 different lengths' }, { id: 'mass', label: 'Time a light and a heavy ball on the same string' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.runs = data.runs || [];
+    const PX = { 25: 130, 50: 230, 100: 400 }, PER = { 25: 1.0, 50: 1.4, 100: 2.0 };
+    let L = sci ? 50 : 100, mass = 'light', th = 0, om = 0, prev = 0, held = false, swinging = false, count = 0, side = 1;
+    S('rect', { x: 250, y: 50, width: 300, height: 18, rx: 6, fill: '#475569' }, svg);
+    const str = S('line', { x1: 400, y1: 68, stroke: '#1f2a44', 'stroke-width': 4 }, svg);
+    const bob = S('circle', { class: 'item', stroke: '#1f2a44', 'stroke-width': 4 }, svg);
+    const counter = label(svg, 400, 560, 'Swings: 0', 30, '#1f2a44');
+    function draw() {
+      const x = 400 + PX[L] * Math.sin(th), y = 68 + PX[L] * Math.cos(th);
+      str.setAttribute('x2', x); str.setAttribute('y2', y); bob.setAttribute('cx', x); bob.setAttribute('cy', y);
+      bob.setAttribute('r', mass === 'heavy' ? 36 : 24); bob.setAttribute('fill', mass === 'heavy' ? '#64748b' : '#fbbf24');
+    }
+    const stop = () => { th = 0; om = 0; swinging = false; count = 0; counter.textContent = 'Swings: 0'; draw(); };
+    drag(bob, svg, {
+      start: () => { held = true; swinging = false; },
+      move: p => { th = clamp(Math.atan2(p.x - 400, Math.max(20, p.y - 68)), -0.7, 0.7); draw(); },
+      end: () => { held = false; if (Math.abs(th) > 0.08) { swinging = true; om = 0; prev = 0; count = 0; side = Math.sign(th); counter.textContent = 'Swings: 0'; ctx.goal('swing'); } else stop(); }
+    });
+    function five() {
+      const T = PER[L], t5 = (5 * T).toFixed(1);
+      if (!sci) { ctx.goal('count'); if (L === 25) ctx.goal('short'); return ctx.note(L === 25 ? 'Five swings! The short string swings fast.' : 'Five swings! The long string swings slowly. Now try the short string.'); }
+      const same = data.runs.find(r => r.L === L && r.mass !== mass);
+      data.runs.push({ L, mass, T });
+      ctx.note(`5 swings took ${t5} seconds, so one swing takes ${T.toFixed(1)} seconds.` + (same ? ' The heavy ball and the light ball take the same time. Weight does not change the swing!' : ' Try a different length.'));
+      if (new Set(data.runs.map(r => r.L)).size >= 2) ctx.goal('len2');
+      if (same) { data.massSame = true; ctx.goal('mass'); }
+    }
+    scene.loop(dt => {
+      if (held || !swinging) return;
+      const w = 2 * Math.PI / PER[L];
+      om += (-w * w * th - 0.05 * om) * dt; th += om * dt;
+      if (prev * side > 0 && om * side <= 0) { count++; counter.textContent = 'Swings: ' + count; if (count === 5) five(); }
+      prev = om; draw();
+    });
+    if (sci) controls.append(seg('🧵 Length', [25, 50, 100].map(v => ({ v, t: v + ' cm' })), 50, v => { L = v; stop(); }), seg('Ball', [{ v: 'light', t: 'Light' }, { v: 'heavy', t: 'Heavy' }], 'light', v => { mass = v; stop(); }));
+    else controls.append(seg('🧵 String', [{ v: 100, t: 'Long' }, { v: 25, t: 'Short' }], 100, v => { L = v; stop(); }));
+    draw();
+  },
+  observations(data, lv) {
+    return lv === 'scientist' ? (data.runs || []).slice(-8).map(r => `🧵 ${r.L} cm, ${r.mass} ball: ${r.T.toFixed(1)} s per swing`) : ['🧵 short string: fast swings', '🧵 long string: slow swings'];
+  },
+  result(lv, data) {
+    return lv === 'scientist'
+      ? 'A longer string gave a longer time for each swing. ' + (data.massSame ? 'Changing the weight of the ball made no difference at all.' : 'The time did not depend on how far the ball was pulled.')
+      : 'The ball swung back and forth again and again. With the short string it swung fast. With the long string it swung slowly.';
+  },
+  why: {
+    explorer: 'A ball swinging on a string is called a pendulum. Gravity pulls the ball down. It swings past the middle and up the other side. A short string swings quickly. A long string swings slowly. A playground swing is a pendulum too!',
+    scientist: 'A swinging weight on a string is called a pendulum. Gravity pulls the ball back toward the middle, and its speed carries it up the other side. The time for one full swing is called the period. A longer string gives a longer period. The weight of the ball does not matter, because gravity speeds up heavy and light things equally. Old clocks use a pendulum to keep time, because every swing takes the same time.'
+  },
+  whyAnim({ svg, scene }) {
+    const mk = (x, len, per, t) => { label(svg, x, 60, t, 26, '#1f2a44'); S('rect', { x: x - 60, y: 90, width: 120, height: 12, rx: 4, fill: '#475569' }, svg); return { x, len, per, l: S('line', { x1: x, y1: 100, stroke: '#1f2a44', 'stroke-width': 4 }, svg), b: S('circle', { r: 24, fill: '#fbbf24', stroke: '#1f2a44', 'stroke-width': 4 }, svg) }; };
+    const ps = [mk(230, 150, 1.0, 'Short: fast'), mk(570, 380, 2.0, 'Long: slow')];
+    scene.loop((dt, t) => ps.forEach(p => { const a = 0.5 * Math.cos(2 * Math.PI * t / p.per), x = p.x + p.len * Math.sin(a), y = 100 + p.len * Math.cos(a); p.l.setAttribute('x2', x); p.l.setAttribute('y2', y); p.b.setAttribute('cx', x); p.b.setAttribute('cy', y); }));
+  },
+  home: 'Tie a small toy to a string and hang it from a door handle. Count how many swings it makes in 10 seconds. Make the string shorter and count again.',
+  quiz: {
+    explorer: [
+      { q: 'Which string makes the ball swing faster?', options: ['The short string', 'The long string', 'A red string'], answer: 0 },
+      { q: 'What pulls the ball back down?', options: ['Gravity', 'The wind', 'A magnet'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is the time for one full swing called?', options: ['The period', 'The length', 'The weight'], answer: 0 },
+      { q: 'What changes the period of a pendulum?', options: ['The length of the string', 'The weight of the ball', 'The color of the ball'], answer: 0 },
+      { q: 'Why are pendulums useful in clocks?', options: ['Every swing takes the same time', 'They are heavy', 'They never stop'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.13  Seesaw (lever) ---------- */
+Lab.register({
+  id: 'seesaw', title: 'Seesaw Balance', emoji: '⚖️', color: '#d97706', category: 'Forces and motion',
+  blurb: 'Balance animals on a seesaw.',
+  bits: ['🐭', '🐶', '🐻', '🐰', '🐱', '🛝'],
+  question: {
+    explorer: 'A big animal and a small animal want to play on the seesaw. Can they make it balance?',
+    scientist: 'A seesaw is a lever. How can a light weight balance a heavy one?'
+  },
+  predict: {
+    explorer: { prompt: 'A dog and a little mouse sit the same distance from the middle. Which side goes down?', options: ['The dog’s side', 'The mouse’s side', 'It stays flat'], answer: 0 },
+    scientist: { prompt: 'Can a light mouse ever balance a dog that is 3 times heavier?', options: ['Yes, if the mouse sits farther from the middle', 'No, never', 'Only if they sit at the same distance'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Drag the animals onto the seesaw. Put one on each side. Can you make it balance?',
+    scientist: 'Drag animals onto the numbered seats. Watch the turning effect of each side: weight × distance.'
+  },
+  goals: {
+    explorer: [{ id: 'tilt', label: 'Put animals on both sides' }, { id: 'balance', label: 'Make the seesaw balance' }],
+    scientist: [{ id: 'balance', label: 'Balance the seesaw' }, { id: 'unequal', label: 'Balance a heavy side with a lighter side' }]
+  },
+  animals: [{ id: 'mouse', emoji: '🐭', w: 1 }, { id: 'rabbit', emoji: '🐰', w: 2 }, { id: 'cat', emoji: '🐱', w: 2 }, { id: 'dog', emoji: '🐶', w: 3 }, { id: 'bear', emoji: '🐻', w: 6 }],
+  build(ctx) {
+    const { svg, scene, sci, data } = ctx, P = { x: 400, y: 410 }, SL = [-3, -2, -1, 1, 2, 3];
+    let ang = 0, lastKey = '';
+    S('polygon', { points: `${P.x},${P.y + 6} ${P.x - 50},${P.y + 110} ${P.x + 50},${P.y + 110}`, fill: '#94a3b8', stroke: '#475569', 'stroke-width': 4 }, svg);
+    S('rect', { x: 60, y: P.y + 110, width: 680, height: 14, rx: 5, fill: '#86efac' }, svg);
+    const beam = S('g', {}, svg);
+    S('rect', { x: -310, y: -9, width: 620, height: 18, rx: 8, fill: '#d97706', stroke: '#92400e', 'stroke-width': 3 }, beam);
+    SL.forEach(d => { S('circle', { cx: d * 90, cy: 0, r: 15, fill: '#fef3c7', stroke: '#92400e', 'stroke-width': 3 }, beam); if (sci) label(beam, d * 90, 6, Math.abs(d), 16, '#92400e'); });
+    const read = sci ? label(svg, 400, 580, '', 22, '#1f2a44') : null;
+    const slots = {};
+    const pos = d => { const a = ang * Math.PI / 180; return { x: P.x + d * 90 * Math.cos(a) + 46 * Math.sin(a), y: P.y + d * 90 * Math.sin(a) - 46 * Math.cos(a) }; };
+    const items = this.animals.map((d, i) => {
+      const it = { ...d, hx: 120 + i * 140, hy: 100, slot: null, mode: 'shelf' };
+      it.x = it.hx; it.y = it.hy; it.g = emojiItem(svg, d.emoji, 58 + d.w * 4);
+      if (sci) label(svg, it.hx, 160, 'weight ' + d.w, 16);
+      drag(it.g, svg, {
+        start: () => { it.mode = 'drag'; if (it.slot != null) { delete slots[it.slot]; it.slot = null; } },
+        move: p => { it.x = clamp(p.x, 40, 760); it.y = clamp(p.y, 40, 520); },
+        end: () => {
+          const best = SL.map(d => ({ d, q: pos(d) })).sort((a, b) => Math.hypot(a.q.x - it.x, a.q.y - it.y) - Math.hypot(b.q.x - it.x, b.q.y - it.y))[0];
+          if (Math.hypot(best.q.x - it.x, best.q.y - it.y) < 85) {
+            const old = slots[best.d]; if (old) { old.slot = null; old.mode = 'return'; }
+            slots[best.d] = it; it.slot = best.d; it.mode = 'seat';
+          } else it.mode = 'return';
+          report();
+        }
+      });
+      return it;
+    });
+    const sideText = s => Object.keys(slots).map(Number).filter(d => Math.sign(d) === s).map(d => `${slots[d].w} × ${Math.abs(d)}`).join(' + ');
+    const sum = (s, f) => Object.keys(slots).map(Number).filter(d => Math.sign(d) === s).reduce((a, d) => a + f(slots[d], Math.abs(d)), 0);
+    function report() {
+      const lt = sum(-1, (a, d) => a.w * d), rt = sum(1, (a, d) => a.w * d), lw = sum(-1, a => a.w), rw = sum(1, a => a.w);
+      if (read) read.textContent = `Left: ${sideText(-1) || '0'} = ${lt}        Right: ${sideText(1) || '0'} = ${rt}`;
+      const key = Object.keys(slots).sort().map(d => d + slots[d].id).join(',');
+      if (key === lastKey) return; lastKey = key;
+      if (!lw && !rw) return;
+      if (!lw || !rw) return ctx.note('Now put an animal on the other side too.');
+      ctx.goal('tilt');
+      if (lt === rt) {
+        data.balanced = true; ctx.goal('balance');
+        if (lw !== rw) { data.unequal = true; ctx.goal('unequal'); }
+        ctx.note(sci ? `Balanced! Left: ${sideText(-1)} = ${lt}. Right: ${sideText(1)} = ${rt}. The turning effects are equal.`
+          : lw !== rw ? 'It balances! The lighter side sits farther out, and that gives it more turning power.' : 'It balances! Both sides push down the same.');
+      } else {
+        const s = lt > rt ? 'left' : 'right';
+        ctx.note(sci ? `Left: ${lt}. Right: ${rt}. The ${s} side has the bigger turning effect, so it goes down.`
+          : `The ${s} side goes down. Try moving an animal closer to the middle, or farther out.`);
+      }
+    }
+    scene.loop(dt => {
+      const tq = sum(1, (a, d) => a.w * d) - sum(-1, (a, d) => a.w * d);
+      ang += (clamp(tq * 3.5, -15, 15) - ang) * Math.min(1, dt * 4);
+      beam.setAttribute('transform', `translate(${P.x},${P.y}) rotate(${ang.toFixed(2)})`);
+      for (const it of items) {
+        if (it.mode === 'seat') { const q = pos(it.slot); it.x = q.x; it.y = q.y; }
+        else if (it.mode === 'return') { const k = Math.min(1, dt * 10); it.x += (it.hx - it.x) * k; it.y += (it.hy - it.y) * k; if (Math.abs(it.x - it.hx) + Math.abs(it.y - it.hy) < 1) it.mode = 'shelf'; }
+        it.g.setAttribute('transform', `translate(${it.x.toFixed(1)},${it.y.toFixed(1)})`);
+      }
+    });
+  },
+  observations(data) {
+    const o = [];
+    if (data.balanced) o.push('⚖️ the seesaw balanced');
+    if (data.unequal) o.push('🐭 a lighter side balanced a heavier side');
+    return o;
+  },
+  result(lv, data) {
+    return lv === 'scientist'
+      ? 'The side with the bigger turning effect went down. The seesaw balanced when weight × distance was the same on both sides.' + (data.unequal ? ' A lighter side balanced a heavier side by sitting farther from the middle.' : '')
+      : 'The heavier side went down. When both sides pushed down the same, the seesaw stayed flat. Sitting farther from the middle gives more turning power.';
+  },
+  why: {
+    explorer: 'A seesaw turns around its middle. A heavy animal pushes down harder than a light one. But sitting far from the middle gives more turning power! So a little mouse far out can balance a big dog sitting close to the middle.',
+    scientist: 'A seesaw is a lever. The point it turns on is called the fulcrum. The turning effect of each animal is its weight multiplied by its distance from the fulcrum. The seesaw balances when both sides have the same turning effect. That is how a small force far from the fulcrum can lift a heavy load close to it. Scissors, bottle openers and wheelbarrows are levers too.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('polygon', { points: '400,356 350,460 450,460', fill: '#94a3b8', stroke: '#475569', 'stroke-width': 4 }, svg);
+    const g = S('g', {}, svg);
+    S('rect', { x: -310, y: -9, width: 620, height: 18, rx: 8, fill: '#d97706', stroke: '#92400e', 'stroke-width': 3 }, g);
+    S('text', { x: -270, y: -30, 'font-size': 62, 'text-anchor': 'middle', text: '🐭' }, g); S('text', { x: 90, y: -30, 'font-size': 76, 'text-anchor': 'middle', text: '🐶' }, g);
+    label(svg, 150, 150, sci ? 'weight 1 × distance 3 = 3' : 'Small, but far out', 24, '#1f2a44'); label(svg, 600, 150, sci ? 'weight 3 × distance 1 = 3' : 'Big, but close in', 24, '#1f2a44');
+    label(svg, 400, 540, 'They balance!', 34, '#1f2a44');
+    scene.loop((dt, t) => g.setAttribute('transform', `translate(400,350) rotate(${(Math.sin(t * 1.5) * 2.5).toFixed(2)})`));
+  },
+  home: 'Balance a ruler on a pencil. Put one coin on one side. Where must you put two coins on the other side to make it balance?',
+  quiz: {
+    explorer: [
+      { q: 'Two animals sit the same distance from the middle. Which side goes down?', options: ['The heavier side', 'The lighter side', 'Neither side'], answer: 0 },
+      { q: 'How can a little mouse balance a big dog?', options: ['The mouse sits far from the middle', 'The mouse sits in the middle', 'The mouse jumps off'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What is the turning point of a lever called?', options: ['The fulcrum', 'The load', 'The handle'], answer: 0 },
+      { q: 'A weight of 2 sits at distance 3. What weight at distance 1 balances it?', options: ['6', '3', '2'], answer: 0 },
+      { q: 'Which of these is a lever?', options: ['A pair of scissors', 'A balloon', 'A mirror'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.14  Balloon Rocket ---------- */
+Lab.register({
+  id: 'balloon', title: 'Balloon Rocket', emoji: '🎈', color: '#3b82f6', category: 'Forces and motion',
+  blurb: 'Fill a balloon with air and let it zoom.',
+  bits: ['🚀', '💨', '⭐', '🧵', '📎', '🌬️'],
+  question: {
+    explorer: 'When you let go of a balloon, it zooms away. What pushes it?',
+    scientist: 'A balloon on a string can fly like a rocket. What decides how far it travels?'
+  },
+  predict: {
+    explorer: { prompt: 'The air shoots out of the back. Which way will the balloon go?', options: ['Forward', 'Backward', 'Straight up'], answer: 0 },
+    scientist: { prompt: 'We tape paper clips to the balloon to make it heavier. How far will it fly with the same air?', options: ['Not as far', 'Farther', 'The same distance'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Tap Pump to fill the balloon with air. Then tap Let go!',
+    scientist: 'Pump the balloon, then release it and read the distance. Change the amount of air, then add a load, and compare.'
+  },
+  goals: {
+    explorer: [{ id: 'fly', label: 'Pump the balloon and let it go' }, { id: 'far', label: 'Make it fly all the way to the star' }],
+    scientist: [{ id: 'two', label: 'Compare 2 different amounts of air' }, { id: 'load', label: 'Fly with and without a load, using the same air' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx;
+    data.runs = data.runs || [];
+    let pumps = 0, air = 0, clips = 0, x = 110, fly = null; const puffs = [];
+    S('line', { x1: 30, y1: 280, x2: 770, y2: 280, stroke: '#475569', 'stroke-width': 4 }, svg);
+    if (sci) for (let m = 0; m <= 500; m += 100) { const tx = 110 + m * 1.3; S('line', { x1: tx, y1: 420, x2: tx, y2: 440, stroke: '#475569', 'stroke-width': 3 }, svg); label(svg, tx, 464, m + (m === 500 ? ' cm' : ''), 16); }
+    S('text', { x: 762, y: 250, 'font-size': 50, 'text-anchor': 'middle', text: '⭐' }, svg);
+    const gP = S('g', {}, svg), g = S('g', {}, svg);
+    S('rect', { x: -34, y: -8, width: 68, height: 12, rx: 4, fill: '#fde68a', stroke: '#a16207', 'stroke-width': 2 }, g);
+    const body = S('ellipse', { cy: 34, fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 3 }, g);
+    const noz = S('polygon', { fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 3 }, g);
+    const clipT = S('text', { y: 110, 'font-size': 30, 'text-anchor': 'middle', text: '' }, g);
+    const read = label(svg, 400, 80, 'The balloon is empty', 26, '#1f2a44');
+    function draw() {
+      const rx = 18 + air * 11, ry = 14 + air * 6;
+      body.setAttribute('rx', rx); body.setAttribute('ry', ry); body.setAttribute('cy', 6 + ry);
+      noz.setAttribute('points', `${-rx + 2},${6 + ry - 7} ${-rx - 14},${6 + ry - 12} ${-rx - 14},${6 + ry + 12} ${-rx + 2},${6 + ry + 7}`);
+      clipT.textContent = '📎'.repeat(clips); clipT.setAttribute('y', 40 + ry * 2);
+      g.setAttribute('transform', `translate(${x.toFixed(1)},280)`);
+    }
+    function land() {
+      const cm = Math.round(fly.d / 1.3), prev = data.runs[data.runs.length - 1], run = { p: fly.p, c: clips, cm };
+      data.runs.push(run); fly = null; pumps = 0; air = 0; draw();
+      read.textContent = sci ? `The rocket flew ${cm} cm` : 'Whoosh!';
+      ctx.goal('fly'); if (run.p === 5 && !clips) ctx.goal('far');
+      if (new Set(data.runs.filter(r => r.c === clips).map(r => r.p)).size >= 2) ctx.goal('two');
+      if (data.runs.some(r => r.p === run.p && (r.c > 0) !== (clips > 0))) { data.load = true; ctx.goal('load'); }
+      if (sci) {
+        let why = '';
+        if (prev && prev.c === run.c && prev.p !== run.p) why = run.p > prev.p ? ' More air pushes for longer, so it flew farther.' : ' Less air means a shorter push, so it did not fly as far.';
+        else if (prev && prev.p === run.p && prev.c !== run.c) why = run.c > prev.c ? ' The heavier rocket speeds up less with the same push.' : ' The lighter rocket speeds up more with the same push.';
+        ctx.note(`${run.p} pump${run.p > 1 ? 's' : ''} of air${run.c ? ` and ${run.c} paper clip${run.c > 1 ? 's' : ''}` : ''}: the rocket flew ${cm} cm.` + why);
+      } else ctx.note(run.p === 5 ? 'Whoosh! All the way to the star! Lots of air makes a long push.' : 'Whoosh! The air rushed out of the back and pushed the balloon forward. More air will take it farther!');
+    }
+    scene.loop(dt => {
+      if (fly) {
+        fly.t += dt; const k = Math.min(1, fly.t / fly.dur);
+        x = 110 + fly.d * (1 - (1 - k) * (1 - k)); air = fly.p * (1 - k);
+        if (Math.random() < 0.6) puffs.push({ el: S('circle', { r: 6, fill: '#cbd5e1' }, gP), x: x - 30 - air * 11, y: 300 + Math.random() * 30, life: .6 });
+        draw(); if (k >= 1) land();
+      }
+      for (let i = puffs.length - 1; i >= 0; i--) { const p = puffs[i]; p.life -= dt; p.x -= 160 * dt; p.el.setAttribute('cx', p.x); p.el.setAttribute('cy', p.y); p.el.setAttribute('opacity', Math.max(0, p.life / .6)); if (p.life <= 0) { p.el.remove(); puffs.splice(i, 1); } }
+    });
+    controls.append(
+      h('button', { class: 'mini', onclick: () => {
+        if (fly) return; if (x !== 110) { x = 110; }
+        if (pumps >= 5) return ctx.note('The balloon is full! Tap Let go.');
+        pumps++; air = pumps; draw(); read.textContent = `Air: ${pumps} pump${pumps > 1 ? 's' : ''}`;
+        if (pumps === 1) ctx.note('One pump of air. Pump more, or tap Let go!');
+      } }, '💨 Pump'),
+      h('button', { class: 'mini', onclick: () => {
+        if (fly) return; if (!pumps) return ctx.note('The balloon is empty. Pump some air in first!');
+        x = 110; fly = { p: pumps, d: pumps * 130 / (1 + 0.25 * clips), t: 0, dur: 0.7 + pumps * 0.35 }; read.textContent = '';
+      } }, '🚀 Let go!'));
+    if (sci) controls.append(seg('📎 Load', [0, 1, 3].map(v => ({ v, t: v ? v + (v > 1 ? ' clips' : ' clip') : 'None' })), 0, v => { if (!fly) { clips = v; draw(); } }));
+    draw();
+  },
+  observations(data, lv) {
+    return (data.runs || []).slice(-8).map(r => `💨 ${r.p}` + (r.c ? ` + 📎 ${r.c}` : '') + (lv === 'scientist' ? ` → ${r.cm} cm` : r.p === 5 ? ' → ⭐' : ' → 🎈'));
+  },
+  result(lv, data) {
+    return lv === 'scientist'
+      ? 'The air rushed out backward and the balloon moved forward. More air carried the rocket farther. ' + (data.load ? 'With a load, the same air carried it a shorter distance.' : '')
+      : 'The air rushed out of the back and the balloon zoomed forward along the string. With more air, it flew farther.';
+  },
+  why: {
+    explorer: 'The balloon squeezes the air out of the back. When the air goes one way, the balloon is pushed the other way. More air means a longer push, so the balloon flies farther. Real rockets work this way too!',
+    scientist: 'The stretched balloon pushes air out backward. The air pushes the balloon forward with an equal force. This is Newton’s third law: every action has an equal and opposite reaction. More air keeps the push going for longer. A heavier rocket speeds up less with the same push, so it does not travel as far. Real rockets push hot gas out of the back in the same way. That works even in space, where there is no air.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    S('ellipse', { cx: 430, cy: 300, rx: 150, ry: 100, fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 5 }, svg);
+    S('polygon', { points: '285,285 250,270 250,330 285,315', fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 5 }, svg);
+    const arrow = (col) => { const a = S('g', {}, svg); S('rect', { x: 0, y: -12, width: 90, height: 24, fill: col }, a); S('polygon', { points: '90,-30 140,0 90,30', fill: col }, a); return a; };
+    const a1 = arrow('#94a3b8'), a2 = arrow('#22c55e');
+    label(svg, 130, 400, sci ? 'Action: air pushed back' : 'Air goes back', 24, '#475569'); label(svg, 640, 400, sci ? 'Reaction: balloon pushed forward' : 'Balloon goes forward', 24, '#15803d');
+    scene.loop((dt, t) => { const k = (t % 1.2) / 1.2 * 40; a1.setAttribute('transform', `translate(${230 - k},300) scale(-1,1)`); a2.setAttribute('transform', `translate(${590 + k},300)`); });
+  },
+  home: 'Thread a long string through a drinking straw. Tie the string between two chairs. Blow up a balloon, pinch the end shut, tape it to the straw and let go!',
+  quiz: {
+    explorer: [
+      { q: 'What pushes the balloon forward?', options: ['The air rushing out of the back', 'The string', 'The star'], answer: 0 },
+      { q: 'How do you make the balloon fly farther?', options: ['Put more air in it', 'Put less air in it', 'Shout at it'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What does Newton’s third law say?', options: ['Every action has an equal and opposite reaction', 'Heavy things fall faster', 'Light travels in straight lines'], answer: 0 },
+      { q: 'Why does a heavier balloon rocket travel less far?', options: ['The same push speeds it up less', 'It has more air inside', 'The string gets longer'], answer: 0 },
+      { q: 'Can a rocket work in space, where there is no air?', options: ['Yes, it pushes against its own gas', 'No, it needs air to push on', 'Only near the Moon'], answer: 0 }
+    ]
+  }
+});
+
+/* ---------- 5.15  Gravity Drop ---------- */
+Lab.register({
+  id: 'drop', title: 'Feather and Ball', emoji: '🪶', color: '#64748b', category: 'Forces and motion',
+  blurb: 'Drop a feather and a ball, with air and without.',
+  bits: ['⚽', '🌙', '🔨', '💨', '⬇️', '🧑‍🚀'],
+  question: {
+    explorer: 'A ball falls fast. A feather floats down slowly. Why are they different?',
+    scientist: 'Do heavy things really fall faster than light things? What happens if we take the air away?'
+  },
+  predict: {
+    explorer: { prompt: 'We drop a ball and a feather in the air. Which one lands first?', options: ['⚽ The ball', '🪶 The feather', 'Both together'], answer: 0 },
+    scientist: { prompt: 'We pump all the air out of the tube and drop them again. Which lands first?', options: ['They land together', 'The ball', 'The feather'], answer: 0 }
+  },
+  instructions: {
+    explorer: 'Tap Drop and watch them fall. Then take the air out and drop them again!',
+    scientist: 'Drop the objects in air and read the fall times. Then pump the air out to make a vacuum and repeat.'
+  },
+  goals: {
+    explorer: [{ id: 'air', label: 'Drop them in the air' }, { id: 'vac', label: 'Take the air out and drop them again' }],
+    scientist: [{ id: 'air', label: 'Measure the fall times in air' }, { id: 'vac', label: 'Measure the fall times in a vacuum' }]
+  },
+  build(ctx) {
+    const { svg, scene, sci, data, controls } = ctx, Y0 = 130, H = 340;
+    let air = true, drop = null;
+    const tube = S('rect', { x: 180, y: 60, width: 440, height: 460, rx: 30, fill: '#e0f2fe', stroke: '#475569', 'stroke-width': 6 }, svg);
+    S('rect', { x: 150, y: 506, width: 500, height: 20, rx: 6, fill: '#94a3b8' }, svg);
+    const state = label(svg, 400, 45, '', 22, '#1f2a44');
+    const objs = [{ e: '⚽', x: 290, name: 'ball', f: false }, { e: '🪶', x: 510, name: 'feather', f: true }];
+    if (sci) objs.splice(1, 0, { e: '🔨', x: 400, name: 'hammer', f: false });
+    objs.forEach(o => { o.el = S('text', { 'font-size': 60, 'text-anchor': 'middle', dy: '.35em', text: o.e }, svg); o.lab = sci ? label(svg, o.x, 560, '', 18, '#1f2a44') : null; });
+    function place() { objs.forEach(o => { o.el.setAttribute('x', o.x); o.el.setAttribute('y', Y0); o.el.removeAttribute('transform'); if (o.lab) o.lab.textContent = ''; }); tube.setAttribute('fill', air ? '#e0f2fe' : '#f8fafc'); state.textContent = air ? 'Tube full of air' : 'No air inside (a vacuum)'; }
+    function done() {
+      drop = null;
+      if (air) { data.air = true; ctx.goal('air'); ctx.note(sci ? 'In air the ball and the hammer land after 0.64 seconds. The feather takes 3.00 seconds, because air resistance slows it down.' : 'The ball lands first. The feather floats down slowly.'); }
+      else { data.vac = true; ctx.goal('vac'); ctx.note(sci ? 'In a vacuum everything lands after 0.64 seconds. Without air resistance, gravity speeds up all objects equally.' : 'Wow! With no air, the ball and the feather land at the same time!'); }
+    }
+    scene.loop(dt => {
+      if (!drop) return;
+      drop.t += dt * 0.6; let all = true;
+      objs.forEach(o => {
+        const slow = o.f && air, T = slow ? 3.0 : 0.64, k = Math.min(1, drop.t / T), y = Y0 + H * (slow ? k : k * k);
+        o.el.setAttribute('y', y); o.el.setAttribute('x', o.x + (slow && k < 1 ? Math.sin(drop.t * 5) * 28 : 0));
+        if (k < 1) all = false; else if (o.lab && !o.lab.textContent) o.lab.textContent = `${o.name}: ${T.toFixed(2)} s`;
+      });
+      if (all) done();
+    });
+    controls.append(
+      seg('Tube', [{ v: true, t: '💨 Air' }, { v: false, t: '🚫 No air' }], true, v => { air = v; drop = null; place(); ctx.note(v ? 'The tube is full of air again.' : 'All the air is pumped out. The tube is empty. That is called a vacuum.'); }),
+      h('button', { class: 'mini', onclick: () => { place(); drop = { t: 0 }; } }, '⬇️ Drop!'));
+    place();
+  },
+  observations(data) {
+    const o = [];
+    if (data.air) o.push('💨 air: ⚽ first, 🪶 last');
+    if (data.vac) o.push('🚫 no air: ⚽ and 🪶 together');
+    return o;
+  },
+  result(lv) {
+    return lv === 'scientist'
+      ? 'In air, the ball and the hammer landed long before the feather. In a vacuum, all three took exactly the same time. The difference came from the air, not from the weight.'
+      : 'In the air, the ball landed first and the feather floated down slowly. With no air, they fell side by side and landed together!';
+  },
+  why: {
+    explorer: 'Gravity pulls everything down. Air gets in the way of falling things. The feather is light and fluffy, so the air slows it down a lot. The ball pushes through the air easily. When there is no air, nothing slows the feather. Then they fall together!',
+    scientist: 'Gravity makes all objects speed up at the same rate, however heavy they are. In air, falling objects also feel air resistance. A feather has a large surface and very little weight, so air resistance slows it a lot. In a vacuum there is no air resistance, so the feather and the ball fall side by side. An astronaut showed this on the Moon by dropping a hammer and a feather. They hit the ground at the same moment.'
+  },
+  whyAnim({ svg, scene, sci }) {
+    const arrow = (x, y, len, col, up) => { const g = S('g', { transform: `translate(${x},${y}) rotate(${up ? -90 : 90})` }, svg); S('rect', { x: 0, y: -9, width: len, height: 18, fill: col }, g); S('polygon', { points: `${len},-24 ${len + 34},0 ${len},24`, fill: col }, g); return g; };
+    [[230, '⚽', 26], [570, '🪶', 96]].forEach(([x, e, up]) => {
+      S('text', { x, y: 300, 'font-size': 90, 'text-anchor': 'middle', dy: '.35em', text: e }, svg);
+      arrow(x, 360, 100, '#ef4444', false); arrow(x, 240, up, '#3b82f6', true);
+    });
+    label(svg, 400, 520, sci ? 'Gravity' : 'Gravity pulls down', 26, '#ef4444'); label(svg, 400, 90, sci ? 'Air resistance' : 'Air pushes back', 26, '#3b82f6');
+    label(svg, 230, 570, 'Air hardly slows the ball', 20); label(svg, 570, 570, 'Air slows the feather a lot', 20);
+  },
+  home: 'Hold a flat sheet of paper and a ball at the same height and drop them together. Then scrunch the paper into a tight ball and drop them again. What changed?',
+  quiz: {
+    explorer: [
+      { q: 'What slows the feather down as it falls?', options: ['The air', 'The floor', 'The ball'], answer: 0 },
+      { q: 'With no air, which lands first?', options: ['They land together', 'The ball', 'The feather'], answer: 0 }
+    ],
+    scientist: [
+      { q: 'What force slows a falling feather?', options: ['Air resistance', 'Magnetism', 'Friction with the floor'], answer: 0 },
+      { q: 'In a vacuum, which falls faster: a hammer or a feather?', options: ['Neither. They fall at the same rate', 'The hammer', 'The feather'], answer: 0 },
+      { q: 'Where did an astronaut drop a hammer and a feather together?', options: ['On the Moon', 'On Mars', 'Under the sea'], answer: 0 }
     ]
   }
 });
